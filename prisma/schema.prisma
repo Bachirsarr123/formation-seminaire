@@ -1,0 +1,455 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// SOCLE
+// ============================================================
+
+model Cabinet {
+  id               String   @id @default(uuid())
+  nom              String
+  logoUrl          String?  @map("logo_url")
+  couleurPrimaire  String?  @map("couleur_primaire")
+  // Contact public volontairement distinct des comptes Utilisateur : retomber
+  // sur l'e-mail d'un organisateur exposerait une adresse jamais choisie pour
+  // être publique (ex. affichage "séminaire complet").
+  emailContact     String?  @map("email_contact")
+  telephoneContact String?  @map("telephone_contact")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  utilisateurs Utilisateur[]
+  seminaires   Seminaire[]
+  participants Participant[]
+
+  @@map("cabinet")
+}
+
+enum RoleUtilisateur {
+  ORGANISATEUR
+  FORMATEUR
+
+  @@map("role_utilisateur")
+}
+
+model Utilisateur {
+  id             String          @id @default(uuid())
+  cabinetId      String          @map("cabinet_id")
+  email          String          @unique
+  nom            String
+  prenom         String
+  role           RoleUtilisateur
+  // nullable : les formateurs n'ont pas de mot de passe, ils passent par lien magique
+  motDePasseHash String?         @map("mot_de_passe_hash")
+  actif          Boolean         @default(true)
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  cabinet             Cabinet              @relation(fields: [cabinetId], references: [id])
+  seminaireFormateurs SeminaireFormateur[]
+
+  @@index([cabinetId])
+  @@map("utilisateur")
+}
+
+// ============================================================
+// SEMINAIRES
+// ============================================================
+
+enum Modalite {
+  PRESENTIEL
+  DISTANCIEL
+  HYBRIDE
+
+  @@map("modalite")
+}
+
+enum StatutSeminaire {
+  BROUILLON
+  PUBLIE
+  EN_COURS
+  CLOTURE
+  ARCHIVE
+
+  @@map("statut_seminaire")
+}
+
+model Seminaire {
+  id                 String          @id @default(uuid())
+  cabinetId          String          @map("cabinet_id")
+  // nanoid(10), généré côté application, jamais deviné
+  codePublic         String          @unique @map("code_public")
+  titre              String
+  description        String?
+  dateDebut          DateTime        @map("date_debut")
+  dateFin            DateTime        @map("date_fin")
+  lieu               String?
+  modalite           Modalite
+  dureeHeures        Float           @map("duree_heures")
+  capaciteMax        Int?            @map("capacite_max")
+  statut             StatutSeminaire @default(BROUILLON)
+  inscriptionOuverte Boolean         @default(false) @map("inscription_ouverte")
+  validationRequise  Boolean         @default(false) @map("validation_requise")
+  // en dessous de ce nombre de messages anonymes, l'organisateur ne voit rien
+  seuilAnonymat      Int             @default(5) @map("seuil_anonymat")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  // Suppression logique. Les enfants (modules, inscriptions, questionnaires,
+  // messages) ne sont jamais supprimés en cascade : ils restent auditables.
+  // Toute requête applicative doit filtrer `supprimeLe: null` par défaut.
+  supprimeLe         DateTime?       @map("supprime_le")
+
+  cabinet          Cabinet              @relation(fields: [cabinetId], references: [id])
+  modules          Module[]
+  formateurs       SeminaireFormateur[]
+  inscriptions     Inscription[]
+  questionnaires   Questionnaire[]
+  messagesAnonymes MessageAnonyme[]
+
+  @@index([cabinetId])
+  @@map("seminaire")
+}
+
+model Module {
+  id            String  @id @default(uuid())
+  seminaireId   String  @map("seminaire_id")
+  titre         String
+  description   String?
+  dureeMinutes  Int     @map("duree_minutes")
+  ordre         Int
+
+  // Restrict : Seminaire est en suppression logique, on ne veut plus jamais
+  // qu'un DELETE physique dessus emporte silencieusement ses modules.
+  seminaire Seminaire  @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+  questions Question[]
+
+  @@index([seminaireId])
+  @@map("module")
+}
+
+enum RoleFormateur {
+  PRINCIPAL
+  INTERVENANT
+
+  @@map("role_formateur")
+}
+
+model SeminaireFormateur {
+  seminaireId   String        @map("seminaire_id")
+  utilisateurId String        @map("utilisateur_id")
+  roleFormateur RoleFormateur @map("role_formateur")
+
+  seminaire   Seminaire   @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@id([seminaireId, utilisateurId])
+  @@map("seminaire_formateur")
+}
+
+// ============================================================
+// PARTICIPANTS
+// ============================================================
+
+// Rattaché au cabinet, pas au séminaire : historique conservé entre sessions.
+//
+// email et telephone sont tous deux nullables : beaucoup de participants ne
+// sont joignables que par WhatsApp. Une contrainte CHECK en base garantit
+// qu'au moins l'un des deux est renseigné (email IS NOT NULL OR telephone
+// IS NOT NULL) — Prisma n'a pas de syntaxe déclarative pour les contraintes
+// CHECK, elle doit donc être ajoutée à la main dans le SQL de la première
+// migration :
+//   ALTER TABLE "participant"
+//     ADD CONSTRAINT "participant_contact_requis"
+//     CHECK (email IS NOT NULL OR telephone IS NOT NULL);
+//
+// Deux index uniques partiels (migration 20260730131832, même limite du DSL
+// Prisma) empêchent en base deux participants avec le même email/téléphone
+// normalisé dans un même cabinet — filet de sécurité contre la double
+// création en cas d'inscriptions concurrentes de la même personne. Voir
+// lib/participant.ts pour le rattrapage applicatif de cette violation.
+model Participant {
+  id           String   @id @default(uuid())
+  cabinetId    String   @map("cabinet_id")
+  nom          String
+  prenom       String
+  email        String?
+  telephone    String?
+  fonction     String?
+  organisation String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  cabinet       Cabinet        @relation(fields: [cabinetId], references: [id])
+  inscriptions  Inscription[]
+  consentements Consentement[]
+
+  @@index([cabinetId])
+  @@map("participant")
+}
+
+enum StatutInscription {
+  EN_ATTENTE
+  CONFIRMEE
+  REFUSEE
+  ANNULEE
+
+  @@map("statut_inscription")
+}
+
+enum SourceInscription {
+  IMPORT
+  MANUEL
+  AUTO_INSCRIPTION
+
+  @@map("source_inscription")
+}
+
+model Inscription {
+  id              String            @id @default(uuid())
+  seminaireId     String            @map("seminaire_id")
+  participantId   String            @map("participant_id")
+  // nanoid(21), généré côté application — c'est le jeton de la Règle 1
+  jeton           String            @unique
+  statut          StatutInscription @default(EN_ATTENTE)
+  source          SourceInscription
+  dateInscription DateTime          @default(now()) @map("date_inscription")
+  jetonExpireLe   DateTime?         @map("jeton_expire_le")
+  aRepondu        Boolean           @default(false) @map("a_repondu")
+  // Volontairement une DATE sans heure : voir note sur `soumission` plus bas.
+  aReponduLe      DateTime?         @map("a_repondu_le") @db.Date
+
+  // Restrict, pas Cascade : une suppression de Participant (RGPD) ne doit
+  // jamais silencieusement emporter ses inscriptions. L'app doit d'abord
+  // supprimer/anonymiser les inscriptions explicitement, puis le participant
+  // — sans risque pour les données d'évaluation, qui n'y sont pas rattachées.
+  seminaire     Seminaire      @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+  participant   Participant    @relation(fields: [participantId], references: [id], onDelete: Restrict)
+  consentements Consentement[]
+  // (Inscription elle-même est une ligne "légère" : la supprimer pour un
+  // participant donné ne touche à aucune donnée d'évaluation, cf. plus haut.)
+
+  // Une ligne par couple (séminaire, participant), y compris à travers les
+  // annulations : une ré-inscription après ANNULEE réutilise cette même ligne
+  // (statut -> CONFIRMEE, jeton régénéré) plutôt que d'en insérer une nouvelle.
+  // Ne pas contourner cette contrainte par un INSERT côté application.
+  @@unique([seminaireId, participantId])
+  @@index([seminaireId])
+  @@index([participantId])
+  @@map("inscription")
+}
+
+// ============================================================
+// CONSENTEMENT — table en ajout seul
+//
+// Aucune ligne n'est jamais modifiée après création, sauf pour y poser
+// `retireLe` une unique fois (et jamais pour INSCRIPTION_EVALUATION, qui
+// n'est pas un consentement retirable mais la preuve d'une information
+// donnée). Deux triggers en base (migration manuelle, hors DSL Prisma)
+// interdisent tout UPDATE hors `retireLe` et tout DELETE, quel que soit le
+// code applicatif appelant — voir prisma/migrations/*_ajout_consentement.
+//
+// Portée de l'unicité "une ligne active par...", différente selon la
+// finalité (index partiels, migration manuelle) :
+//   - INSCRIPTION_EVALUATION, COMMUNICATIONS : globale au participant
+//     (participant_id, finalite) WHERE retire_le IS NULL.
+//   - PARTAGE_EMPLOYEUR : par formation, puisque consentir au partage avec
+//     l'employeur A ne vaut pas consentement pour l'employeur B
+//     (participant_id, inscription_id, finalite) WHERE retire_le IS NULL.
+//     Une contrainte CHECK garantit que inscription_id n'est jamais nul pour
+//     cette finalité (sans quoi l'index partiel ci-dessus perdrait son sens :
+//     deux NULL ne se heurtent jamais dans un index Postgres).
+// ============================================================
+
+enum FinaliteConsentement {
+  // Pas une case à cocher : exécution du service demandé, simple mention
+  // d'information. Preuve de la version du texte affichée, non retirable
+  // (trigger dédié).
+  INSCRIPTION_EVALUATION
+  // Facultatif, non pré-coché : informations sur les prochaines formations.
+  COMMUNICATIONS
+  // Facultatif, non pré-coché : transmission présence/attestation à
+  // l'employeur qui finance — scopé par inscription, pas par participant.
+  PARTAGE_EMPLOYEUR
+
+  @@map("finalite_consentement")
+}
+
+model Consentement {
+  id            String               @id @default(uuid())
+  participantId String               @map("participant_id")
+  inscriptionId String?              @map("inscription_id")
+  finalite      FinaliteConsentement
+  versionTexte  String               @map("version_texte")
+  donneLe       DateTime             @map("donne_le")
+  retireLe      DateTime?            @map("retire_le")
+  // hash de l'IP + user-agent (HMAC, secret dédié) — jamais l'IP en clair
+  preuveHash    String               @map("preuve_hash")
+
+  participant Participant  @relation(fields: [participantId], references: [id], onDelete: Restrict)
+  inscription Inscription? @relation(fields: [inscriptionId], references: [id], onDelete: Restrict)
+
+  @@index([participantId, finalite])
+  @@index([inscriptionId])
+  @@map("consentement")
+}
+
+// ============================================================
+// QUESTIONNAIRE
+// ============================================================
+
+enum StatutQuestionnaire {
+  BROUILLON
+  PUBLIE
+  FERME
+
+  @@map("statut_questionnaire")
+}
+
+model Questionnaire {
+  id          String              @id @default(uuid())
+  seminaireId String              @map("seminaire_id")
+  titre       String
+  dateLimite  DateTime?           @map("date_limite")
+  statut      StatutQuestionnaire @default(BROUILLON)
+  // Suppression logique, même logique que Seminaire : les Soumissions/Reponses
+  // qui en dépendent (via Section/Question) restent auditables indéfiniment.
+  supprimeLe  DateTime?           @map("supprime_le")
+
+  seminaire   Seminaire    @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+  sections    Section[]
+  soumissions Soumission[]
+
+  @@index([seminaireId])
+  @@map("questionnaire")
+}
+
+model Section {
+  id              String  @id @default(uuid())
+  questionnaireId String  @map("questionnaire_id")
+  titre           String
+  description     String?
+  ordre           Int
+
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Restrict)
+  questions     Question[]
+
+  @@index([questionnaireId])
+  @@map("section")
+}
+
+enum TypeQuestion {
+  NOTE_5
+  NOTE_10
+  ECHELLE_4
+  QCM_UNIQUE
+  QCM_MULTIPLE
+  TEXTE_LIBRE
+  OUI_NON
+  NPS
+
+  @@map("type_question")
+}
+
+model Question {
+  id          String       @id @default(uuid())
+  sectionId   String       @map("section_id")
+  moduleId    String?      @map("module_id")
+  intitule    String
+  description String?
+  type        TypeQuestion
+  obligatoire Boolean      @default(false)
+  ordre       Int
+  // pour les QCM : options.choix = [{ id, libelle }]
+  options     Json?
+  // Suppression logique : une Question ayant déjà des Reponses ne doit
+  // jamais disparaître physiquement (elle en perdrait le sens pour l'audit).
+  supprimeLe  DateTime?    @map("supprime_le")
+
+  section  Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  module   Module?   @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  reponses Reponse[]
+
+  @@index([sectionId])
+  @@index([moduleId])
+  @@map("question")
+}
+
+// ============================================================
+// RÉPONSES — ZONE CLOISONNÉE
+//
+// Règle 2 (non négociable) : ces deux modèles ne portent AUCUNE colonne,
+// AUCUNE clé étrangère et AUCUN index vers Inscription ou Participant.
+// Le seul chemin de jointure remonte vers Question → Section → Questionnaire
+// → Seminaire, jamais vers l'identité du répondant.
+// Pas de timestamp précis non plus : seul `jourSoumission` (DATE) existe,
+// pour empêcher toute corrélation temporelle avec `inscription.aReponduLe`.
+// ============================================================
+
+model Soumission {
+  id              String   @id @default(uuid())
+  questionnaireId String   @map("questionnaire_id")
+  jourSoumission  DateTime @default(dbgenerated("CURRENT_DATE")) @map("jour_soumission") @db.Date
+
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Restrict)
+  reponses      Reponse[]
+
+  @@index([questionnaireId])
+  @@map("soumission")
+}
+
+// Règle d'affichage (non négociable) : toute liste de valeurTexte (réponses
+// libres) doit être retournée dans un ordre aléatoire par la couche d'accès
+// aux données, jamais dans l'ordre d'insertion / l'ordre des id — l'ordre
+// physique des lignes trahit qui a répondu en premier, ce qui suffit à
+// réidentifier quelqu'un dans un petit groupe. Ne jamais faire
+// `ORDER BY id`/`createdAt` sur ces listages ; utiliser `ORDER BY random()`
+// (ou un mélange équivalent côté application) — voir lib/anonymat.ts.
+model Reponse {
+  id              String  @id @default(uuid())
+  soumissionId    String  @map("soumission_id")
+  questionId      String  @map("question_id")
+  valeurNumerique Float?  @map("valeur_numerique")
+  valeurTexte     String? @map("valeur_texte")
+  valeurOptions   Json?   @map("valeur_options")
+
+  soumission Soumission @relation(fields: [soumissionId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@index([soumissionId])
+  @@index([questionId])
+  @@map("reponse")
+}
+
+// ============================================================
+// MESSAGES ANONYMES
+// ============================================================
+
+enum StatutMessage {
+  NOUVEAU
+  LU
+  TRAITE
+
+  @@map("statut_message")
+}
+
+// Même règle d'affichage que pour Reponse.valeurTexte : la liste des messages
+// visibles par l'organisateur (une fois le seuil atteint) est retournée dans
+// un ordre aléatoire, jamais chronologique.
+model MessageAnonyme {
+  id                  String        @id @default(uuid())
+  seminaireId         String        @map("seminaire_id")
+  contenu             String
+  jourEnvoi           DateTime      @default(dbgenerated("CURRENT_DATE")) @map("jour_envoi") @db.Date
+  // permet à l'auteur de revenir lire une réponse sans se dévoiler
+  codeSuiviHash       String        @map("code_suivi_hash")
+  statut              StatutMessage @default(NOUVEAU)
+  reponseOrganisateur String?       @map("reponse_organisateur")
+  dateReponse         DateTime?     @map("date_reponse")
+
+  seminaire Seminaire @relation(fields: [seminaireId], references: [id], onDelete: Cascade)
+
+  @@index([seminaireId])
+  @@map("message_anonyme")
+}

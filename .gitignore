@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+.env
+.env.local
+.env*.local
+*.log
+*.tsbuildinfo
+coverage/
+
+# État local de l'outillage (Claude Code), pas du code projet
+.claude/*.lock
+.claude/settings.local.json

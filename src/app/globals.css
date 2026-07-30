@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Gris froids — presque-blanc au presque-noir, teinte ~215°, désaturée */
+  --gris-000: #fafbfc;
+  --gris-050: #f0f2f5;
+  --gris-100: #e3e6ea;
+  --gris-200: #cbd0d6;
+  --gris-300: #aab0b9;
+  --gris-400: #848b96;
+  --gris-500: #656c77;
+  --gris-600: #4d535d;
+  --gris-700: #383d45;
+  --gris-800: #24272d;
+  --gris-900: #16181c;
+  --gris-950: #0c0d10;
+
+  /* Accent — valeurs par défaut, écrasées inline par page/carte via
+     lib/design/couleur-accent.ts (contextuel au cabinet affiché, jamais
+     global à toute l'application : /mon-espace peut afficher des séminaires
+     de cabinets différents). */
+  --couleur-accent: #2d5da8;
+  --couleur-accent-contraste: #ffffff;
+  --couleur-accent-appui: #23477f;
+  /* accent-texte : jamais --couleur-accent brut comme couleur de TEXTE
+     (échoue l'AA pour un vert vif ou un orange — cf. lib/design/couleur-accent.ts) */
+  --couleur-accent-texte: #1f4066;
+
+  /* Typographie */
+  --police-texte: var(--font-plex-sans), system-ui, sans-serif;
+  --police-chiffres: var(--font-plex-mono), ui-monospace, monospace;
+
+  --taille-xs: 13px;
+  --interligne-xs: 18px;
+  --taille-sm: 14px;
+  --interligne-sm: 20px;
+  --taille-base: 16px;
+  --interligne-base: 24px;
+  --taille-md: 18px;
+  --interligne-md: 26px;
+  --taille-lg: 22px;
+  --interligne-lg: 28px;
+  --taille-xl: 28px;
+  --interligne-xl: 34px;
+  --taille-2xl: 40px;
+  --interligne-2xl: 44px;
+
+  /* Espacements (base 4px) */
+  --espace-1: 4px;
+  --espace-2: 8px;
+  --espace-3: 12px;
+  --espace-4: 16px;
+  --espace-5: 20px;
+  --espace-6: 24px;
+  --espace-8: 32px;
+  --espace-10: 40px;
+  --espace-12: 48px;
+  --espace-16: 64px;
+
+  /* Rayons */
+  --rayon-sm: 8px;
+  --rayon-md: 12px;
+  --rayon-lg: 20px;
+  --rayon-plein: 999px;
+
+  /* Ombres — sobres, réservées aux cartes et à l'échelle de notation */
+  --ombre-sm: 0 1px 2px rgba(12, 13, 16, 0.08);
+  --ombre-md: 0 4px 12px rgba(12, 13, 16, 0.12);
+
+  /* Cible tactile minimale */
+  --cible-min: 44px;
+
+  /* Anneau de focus — neutre, ne dépend JAMAIS de l'accent : doit rester
+     visible quelle que soit la couleur injectée. Halo à deux tons. */
+  --anneau-focus: 0 0 0 2px var(--gris-000), 0 0 0 4px var(--gris-900);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--gris-000);
+  color: var(--gris-800);
+  font-family: var(--police-texte);
+  font-size: var(--taille-base);
+  line-height: var(--interligne-base);
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--gris-900);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Chiffres tabulaires — notes, moyennes, compteurs. Le mono les rend
+   tabulaires par construction (chaque caractère a la même largeur). */
+.chiffre {
+  font-family: var(--police-chiffres);
+  font-variant-numeric: tabular-nums;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='tel'],
+textarea {
+  min-height: var(--cible-min);
+  font-size: 16px; /* jamais < 16px : déclenche le zoom automatique iOS */
+  width: 100%;
+  padding: var(--espace-3) var(--espace-4);
+  border: 1px solid var(--gris-200);
+  border-radius: var(--rayon-sm);
+  background: #fff;
+}
+
+button {
+  min-height: var(--cible-min);
+  cursor: pointer;
+  border: none;
+  border-radius: var(--rayon-sm);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--anneau-focus);
+  border-radius: var(--rayon-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Contenu réservé aux lecteurs d'écran */
+.reserve-lecteur-ecran {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Champ honeypot : invisible et hors du clavier pour un humain, toujours
+   présent dans le DOM pour un bot qui remplit tout sans discernement. */
+.leurre {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}

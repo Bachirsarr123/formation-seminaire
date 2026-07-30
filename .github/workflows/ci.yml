@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: seminaire
+          POSTGRES_PASSWORD: seminaire
+          POSTGRES_DB: seminaire_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U seminaire"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://seminaire:seminaire@localhost:5432/seminaire_platform?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Générer le client Prisma
+        run: npx prisma generate
+
+      # Base fraîchement migrée à chaque run (pas de dump ni de fixture DB
+      # persistante) : migrate deploy rejoue l'historique de migrations tel
+      # quel, y compris la contrainte CHECK ajoutée à la main dans
+      # prisma/migrations/20260730112411_init/migration.sql (non exprimable
+      # dans schema.prisma).
+      - name: Appliquer les migrations sur une base neuve
+        run: npx prisma migrate deploy
+
+      # Règle 2 (non négociable) : cette étape est volontairement séparée et
+      # nommée pour échouer bruyamment et sans ambiguïté le jour où quelqu'un
+      # ajoute une FK "pratique" entre soumission/reponse et
+      # inscription/participant. Ne jamais fusionner cette étape avec le
+      # reste de la suite ni la rendre "continue-on-error".
+      - name: Test de cloisonnement identité / réponses (Règle 2 — AC1)
+        run: npx vitest run tests/schema/cloisonnement.test.ts
+
+      - name: Suite de tests complète
+        run: npx vitest run
