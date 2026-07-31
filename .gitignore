@@ -12,3 +12,9 @@ coverage/
 # État local de l'outillage (Claude Code), pas du code projet
 .claude/*.lock
 .claude/settings.local.json
+
+# Sorties Playwright (rapports, traces, captures d'échec) — jetables
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

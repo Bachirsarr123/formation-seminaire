@@ -5,6 +5,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // tests/e2e/ appartient à Playwright (playwright.config.ts), pas à
+    // Vitest — séparation nette, deux runners distincts.
+    exclude: ['tests/e2e/**', 'node_modules/**'],
     // Tests d'intégration réels contre une seule instance Postgres partagée
     // (verrous transactionnels compris, cf. jauge-places-concurrence) : les
     // exécuter en parallèle multiplie les connexions/locks concurrents pour
