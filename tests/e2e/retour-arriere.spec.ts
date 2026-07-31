@@ -20,8 +20,14 @@ test("retour arrière après succès : bouton pas bloqué, renvoi sans doublon",
   await expect(bouton).toHaveText("Je m'inscris");
   await expect(bouton).toBeEnabled();
 
-  // Renvoi du même formulaire : ne doit pas dupliquer (dédoublonnage participant
-  // + upsert d'inscription), doit revenir sur confirmation sans erreur.
+  // Le brouillon local est purgé après un succès (par conception : il contient
+  // des données personnelles, cf. correctifs lot 2) — après retour arrière, le
+  // formulaire est vierge, comme au premier chargement. On resaisit les mêmes
+  // coordonnées pour vérifier que le renvoi est absorbé par le dédoublonnage
+  // participant plutôt que de créer une deuxième inscription.
+  await page.getByLabel('Prénom').fill('Retour');
+  await page.getByLabel('Nom', { exact: true }).fill('Arriere');
+  await page.getByLabel('E-mail').fill(email);
   await page.waitForTimeout(3200);
   await bouton.click();
   await expect(page).toHaveURL(/confirmation/, { timeout: 45000 });

@@ -10,7 +10,7 @@ export default defineConfig({
   globalSetup: './tests/e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1,
-  reporter: [['list']],
+  reporter: [['list'], ['html', { open: 'never' }]],
   // Un réessai : absorbe la lenteur de démarrage à froid observée sur cet
   // hôte (lancement de Chromium, tout premier screenshot) sans masquer un
   // vrai bug — un test qui échoue deux fois de suite pour la même raison
@@ -34,9 +34,17 @@ export default defineConfig({
   // Sans ce bloc, la suite est impossible à exécuter sur une machine propre.
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    // Vérification par connexion TCP brute, pas par requête HTTP : l'app n'a
+    // aucune route qui répond 2xx/3xx sur "/" (toutes les routes réelles sont
+    // sous /p/[jeton], /s/[codePublic], /mon-espace — un 404 sur "/" est le
+    // comportement correct de l'app). Avec `url`, Playwright n'aurait jamais
+    // considéré le serveur comme prêt et aurait toujours expiré au bout de
+    // 180s malgré un serveur réellement opérationnel en ~10s.
+    port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 180000,
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
   projects: [
     {

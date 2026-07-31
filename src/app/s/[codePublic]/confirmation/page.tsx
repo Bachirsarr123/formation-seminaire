@@ -59,10 +59,14 @@ export default async function PageConfirmation({ searchParams }: Props) {
 
       <div className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
         <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">{lienPersonnel}</p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <BoutonCopier lien={lienPersonnel} />
+          {/* Le SVG généré par la lib QRCode porte une largeur fixe (180) codée
+              dans son markup — un élément remplacé dans une ligne flex ne
+              rétrécit pas sous cette taille par défaut, d'où un débordement
+              horizontal à fort zoom même sur un viewport large. */}
           {/* eslint-disable-next-line react/no-danger */}
-          <div dangerouslySetInnerHTML={{ __html: qrSvg }} aria-hidden="true" />
+          <div className="[&>svg]:h-auto [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} aria-hidden="true" />
         </div>
       </div>
 
