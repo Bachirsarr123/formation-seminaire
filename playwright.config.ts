@@ -28,10 +28,16 @@ export default defineConfig({
     actionTimeout: 30000,
     navigationTimeout: 150000,
   },
-  // Pas de webServer géré ici : le serveur de dev est démarré et préchauffé
-  // manuellement en amont (voir le fil de discussion) — laisser Playwright
-  // essayer d'en lancer un second a provoqué un conflit de port et un plantage
-  // lié à un fichier spécifique à Windows/OneDrive dans .next/.
+  // reuseExistingServer: true en local — réutilise le serveur déjà lancé
+  // (évite le conflit de port rencontré plus tôt) ; false en CI, où aucun
+  // serveur n'est encore démarré et Playwright doit en lancer un lui-même.
+  // Sans ce bloc, la suite est impossible à exécuter sur une machine propre.
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 180000,
+  },
   projects: [
     {
       name: 'chromium',
