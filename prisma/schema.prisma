@@ -23,9 +23,10 @@ model Cabinet {
   telephoneContact String?  @map("telephone_contact")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  utilisateurs Utilisateur[]
-  seminaires   Seminaire[]
-  participants Participant[]
+  utilisateurs   Utilisateur[]
+  seminaires     Seminaire[]
+  participants   Participant[]
+  questionnaires Questionnaire[]
 
   @@map("cabinet")
 }
@@ -307,21 +308,48 @@ enum StatutQuestionnaire {
   @@map("statut_questionnaire")
 }
 
+// Un modèle est un questionnaire comme les autres, simplement détaché d'un
+// séminaire (seminaireId nul) — pas de tables ModeleQuestionnaire/Section/
+// Question en miroir : un seul jeu de tables, un seul éditeur, un seul rendu.
+// Créer le questionnaire d'un séminaire = copie profonde d'un modèle
+// (lib/questionnaire/copier-modele.ts), modeleOrigineId tracé.
+//
+// Contrainte CHECK (migration manuelle, non exprimable dans le DSL Prisma) :
+//   (est_modele = true AND seminaire_id IS NULL)
+//   OR (est_modele = false AND seminaire_id IS NOT NULL)
+//
+// verrouilleLe est posé automatiquement au passage en PUBLIE (trigger,
+// migration manuelle) et n'est plus jamais modifiable une fois posé. Mais
+// verrouilleLe seul ne bloque rien : ce qui rend section/question immuables,
+// c'est verrouilleLe non nul ET au moins une soumission déjà reçue (trigger
+// sur section/question) — voir lib/questionnaire/verrouillage.ts pour la
+// même règle côté applicatif.
 model Questionnaire {
-  id          String              @id @default(uuid())
-  seminaireId String              @map("seminaire_id")
-  titre       String
-  dateLimite  DateTime?           @map("date_limite")
-  statut      StatutQuestionnaire @default(BROUILLON)
+  id              String              @id @default(uuid())
+  cabinetId       String              @map("cabinet_id")
+  seminaireId     String?             @map("seminaire_id")
+  estModele       Boolean             @default(false) @map("est_modele")
+  // nom du modèle dans la bibliothèque du cabinet — nul pour un questionnaire
+  // de séminaire, qui garde `titre` comme seul nom affiché aux participants.
+  nom             String?
+  modeleOrigineId String?             @map("modele_origine_id")
+  titre           String
+  dateLimite      DateTime?           @map("date_limite")
+  statut          StatutQuestionnaire @default(BROUILLON)
+  verrouilleLe    DateTime?           @map("verrouille_le")
   // Suppression logique, même logique que Seminaire : les Soumissions/Reponses
   // qui en dépendent (via Section/Question) restent auditables indéfiniment.
-  supprimeLe  DateTime?           @map("supprime_le")
+  supprimeLe      DateTime?           @map("supprime_le")
 
-  seminaire   Seminaire    @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
-  sections    Section[]
-  soumissions Soumission[]
+  cabinet        Cabinet         @relation(fields: [cabinetId], references: [id])
+  seminaire      Seminaire?      @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+  modeleOrigine  Questionnaire?  @relation("CopieModele", fields: [modeleOrigineId], references: [id], onDelete: Restrict)
+  copiesDuModele Questionnaire[] @relation("CopieModele")
+  sections       Section[]
+  soumissions    Soumission[]
 
   @@index([seminaireId])
+  @@index([cabinetId])
   @@map("questionnaire")
 }
 
@@ -353,19 +381,26 @@ enum TypeQuestion {
 }
 
 model Question {
-  id          String       @id @default(uuid())
-  sectionId   String       @map("section_id")
-  moduleId    String?      @map("module_id")
-  intitule    String
-  description String?
-  type        TypeQuestion
-  obligatoire Boolean      @default(false)
-  ordre       Int
+  id                  String       @id @default(uuid())
+  sectionId           String       @map("section_id")
+  moduleId            String?      @map("module_id")
+  intitule            String
+  description         String?
+  type                TypeQuestion
+  obligatoire         Boolean      @default(false)
+  ordre               Int
   // pour les QCM : options.choix = [{ id, libelle }]
-  options     Json?
+  // pour ECHELLE_4 (obligatoire pour ce type, un Likert sans intitulé ne veut
+  // rien dire) : options.libelles = { "1": "...", "2": "...", "3": "...", "4": "..." }
+  options             Json?
+  // Case « Sans opinion » distincte de « pas répondu » : voir Reponse plus
+  // bas (valeurOptions.sansOpinion), qui garde une ligne mais valeurNumerique
+  // null — sans ça, une moyenne agrégerait silencieusement des choix au
+  // hasard de participants sans avis réel.
+  autoriseSansOpinion Boolean      @default(false) @map("autorise_sans_opinion")
   // Suppression logique : une Question ayant déjà des Reponses ne doit
   // jamais disparaître physiquement (elle en perdrait le sens pour l'audit).
-  supprimeLe  DateTime?    @map("supprime_le")
+  supprimeLe          DateTime?    @map("supprime_le")
 
   section  Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   module   Module?   @relation(fields: [moduleId], references: [id], onDelete: SetNull)

@@ -2,9 +2,18 @@
 // séminaires avec des dates futures et trois couleurs d'accent distinctes.
 // Les séminaires du seed (lot 1) ont tous des dates déjà passées relativement
 // à aujourd'hui — inutilisables pour tester le parcours d'inscription ouvert.
-import { PrismaClient, Modalite, StatutSeminaire, SourceInscription, StatutInscription } from '@prisma/client';
+import {
+  PrismaClient,
+  Modalite,
+  StatutSeminaire,
+  StatutQuestionnaire,
+  TypeQuestion,
+  SourceInscription,
+  StatutInscription,
+} from '@prisma/client';
 import { genererCodePublicSeminaire, genererJetonInscription } from '../src/lib/jeton';
 import { verifierEnvironnementDev } from '../src/lib/garde-environnement-dev';
+import { copierModeleVersSeminaire } from '../src/lib/questionnaire/copier-modele';
 
 try {
   process.loadEnvFile('.env');
@@ -89,6 +98,85 @@ async function main() {
     },
   });
 
+  // ------------------------------------------------------------------
+  // Séminaire terminé (phase APRES) avec questionnaire publié — pour le
+  // parcours de réponse sans JavaScript (lot 3). Un modèle bibliothèque
+  // dédié, copié une fois vers ce séminaire (comme le fera le futur espace
+  // organisateur), avec un jeton jamais répondu et un second déjà répondu.
+  // ------------------------------------------------------------------
+  const cabinetQuestionnaire = await prisma.cabinet.create({
+    data: { nom: 'Cabinet QA Questionnaire', couleurPrimaire: '#2D5DA8' },
+  });
+  const seminaireTermine = await prisma.seminaire.create({
+    data: {
+      cabinetId: cabinetQuestionnaire.id,
+      codePublic: genererCodePublicSeminaire(),
+      titre: 'QA — Séminaire terminé (questionnaire)',
+      dateDebut: new Date(Date.now() - 30 * 24 * 3600 * 1000),
+      dateFin: new Date(Date.now() - 29 * 24 * 3600 * 1000),
+      lieu: 'Dakar',
+      modalite: Modalite.PRESENTIEL,
+      dureeHeures: 7,
+      statut: StatutSeminaire.CLOTURE,
+      inscriptionOuverte: false,
+    },
+  });
+
+  const modeleQA = await prisma.questionnaire.create({
+    data: { cabinetId: cabinetQuestionnaire.id, estModele: true, nom: 'Modèle QA', titre: 'Évaluation QA' },
+  });
+  const sectionQA = await prisma.section.create({
+    data: { questionnaireId: modeleQA.id, titre: 'Général', ordre: 1 },
+  });
+  await prisma.question.create({
+    data: { sectionId: sectionQA.id, intitule: 'Satisfaction globale', type: TypeQuestion.NOTE_5, obligatoire: true, ordre: 1 },
+  });
+  await prisma.question.create({
+    data: {
+      sectionId: sectionQA.id,
+      intitule: 'Recommanderiez-vous ce séminaire ?',
+      type: TypeQuestion.NPS,
+      obligatoire: false,
+      ordre: 2,
+    },
+  });
+  await prisma.question.create({
+    data: { sectionId: sectionQA.id, intitule: 'Vos remarques libres', type: TypeQuestion.TEXTE_LIBRE, obligatoire: false, ordre: 3 },
+  });
+
+  const copieQuestionnaire = await copierModeleVersSeminaire(modeleQA.id, seminaireTermine.id);
+  await prisma.questionnaire.update({ where: { id: copieQuestionnaire.id }, data: { statut: StatutQuestionnaire.PUBLIE } });
+
+  const participantQuestionnaire = await prisma.participant.create({
+    data: { cabinetId: cabinetQuestionnaire.id, nom: 'Questionnaire', prenom: 'Test', email: 'qa.questionnaire@example.test' },
+  });
+  const jetonQuestionnaire = genererJetonInscription();
+  await prisma.inscription.create({
+    data: {
+      seminaireId: seminaireTermine.id,
+      participantId: participantQuestionnaire.id,
+      jeton: jetonQuestionnaire,
+      statut: StatutInscription.CONFIRMEE,
+      source: SourceInscription.MANUEL,
+    },
+  });
+
+  // Second participant, même questionnaire : chaque test e2e doit partir
+  // d'un jeton jamais utilisé, une soumission consomme aRepondu pour de bon.
+  const participantQuestionnaireValidation = await prisma.participant.create({
+    data: { cabinetId: cabinetQuestionnaire.id, nom: 'QuestionnaireValidation', prenom: 'Test', email: 'qa.questionnaire.validation@example.test' },
+  });
+  const jetonQuestionnaireValidation = genererJetonInscription();
+  await prisma.inscription.create({
+    data: {
+      seminaireId: seminaireTermine.id,
+      participantId: participantQuestionnaireValidation.id,
+      jeton: jetonQuestionnaireValidation,
+      statut: StatutInscription.CONFIRMEE,
+      source: SourceInscription.MANUEL,
+    },
+  });
+
   console.log('--- Codes publics QA ---');
   console.log('Bleu (ouvert, avec programme) :', sBleu.codePublic);
   console.log('Vert (ouvert)                :', sVert.codePublic);
@@ -96,6 +184,8 @@ async function main() {
   console.log('Complet                      :', sComplet.codePublic);
   console.log('Fermé                        :', sFerme.codePublic);
   console.log('Jeton ANNULEE (/p/{jeton})   :', jetonAnnule);
+  console.log('Jeton questionnaire (/p/{jeton}, jamais répondu) :', jetonQuestionnaire);
+  console.log('Jeton questionnaire validation (/p/{jeton}, jamais répondu) :', jetonQuestionnaireValidation);
 }
 
 main()

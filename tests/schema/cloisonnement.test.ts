@@ -98,6 +98,41 @@ describe('Cloisonnement identité / réponses (Règle 2)', () => {
     expect(contraintes[0]!.definition).toMatch(/email IS NOT NULL/i);
     expect(contraintes[0]!.definition).toMatch(/telephone IS NOT NULL/i);
   });
+
+  // Lot 3 (questionnaire) : un modèle est un questionnaire comme les autres,
+  // pas une table à part — donc rien qui ressemble à un brouillon de réponse
+  // rattaché à une identité ne doit jamais apparaître dans le schéma.
+  it("aucun modèle du schéma ne représente un brouillon de réponse rattaché à une identité", () => {
+    const { models } = Prisma.dmmf.datamodel;
+    const modelesSuspects = models.filter((m) => /brouillon|draft/i.test(m.name));
+    expect(modelesSuspects.map((m) => m.name)).toEqual([]);
+  });
+
+  it("la contrainte CHECK questionnaire_modele_xor_seminaire existe bien en base", async () => {
+    const contraintes = await prisma.$queryRaw<Array<{ conname: string; definition: string }>>(Prisma.sql`
+      SELECT conname, pg_get_constraintdef(oid) AS definition
+      FROM pg_constraint
+      WHERE conrelid = 'questionnaire'::regclass
+        AND contype = 'c'
+        AND conname = 'questionnaire_modele_xor_seminaire'
+    `);
+
+    expect(contraintes).toHaveLength(1);
+    expect(contraintes[0]!.definition).toMatch(/est_modele/i);
+    expect(contraintes[0]!.definition).toMatch(/seminaire_id/i);
+  });
+
+  it('les triggers de verrouillage structurel (section, question, questionnaire) existent bien en base', async () => {
+    const triggers = await prisma.$queryRaw<Array<{ table_name: string; tgname: string }>>(Prisma.sql`
+      SELECT tgrelid::regclass::text AS table_name, tgname
+      FROM pg_trigger
+      WHERE tgrelid IN ('section'::regclass, 'question'::regclass, 'questionnaire'::regclass)
+        AND NOT tgisinternal
+    `);
+
+    const noms = triggers.map((t) => t.tgname).sort();
+    expect(noms).toEqual(['question_verrouillage', 'questionnaire_verrouillage_auto', 'section_verrouillage'].sort());
+  });
 });
 
 afterAll(async () => {

@@ -12,6 +12,7 @@ import { verifierEnvironnementDev } from '../src/lib/garde-environnement-dev';
 import { annulerInscription, inscrireParticipant } from '../src/lib/inscription';
 import { genererCodePublicSeminaire } from '../src/lib/jeton';
 import { soumettreReponses } from '../src/lib/soumission';
+import { copierModeleVersSeminaire } from '../src/lib/questionnaire/copier-modele';
 
 // Contrairement à `prisma migrate reset` (qui charge .env lui-même et le
 // transmet à ce script quand il l'invoque comme sous-processus), un lancement
@@ -48,20 +49,75 @@ function piocher<T>(liste: T[], index: number): T {
   return liste[index % liste.length]!;
 }
 
-async function creerQuestionnaire(seminaireId: string, statut: StatutQuestionnaire = StatutQuestionnaire.PUBLIE) {
-  const questionnaire = await prisma.questionnaire.create({
-    data: { seminaireId, titre: 'Évaluation à chaud', statut },
+// Un modèle est un questionnaire comme les autres (schema.prisma), détaché
+// d'un séminaire — pas de tables ModeleQuestionnaire/Section/Question en
+// miroir. Un seul modèle dans la bibliothèque du cabinet, copié pour chaque
+// séminaire qui a besoin d'un questionnaire (lib/questionnaire/copier-modele.ts).
+async function creerModeleEvaluation(cabinetId: string) {
+  const modele = await prisma.questionnaire.create({
+    data: {
+      cabinetId,
+      estModele: true,
+      nom: 'Évaluation à chaud',
+      titre: 'Évaluation à chaud',
+      statut: StatutQuestionnaire.BROUILLON,
+    },
   });
   const section = await prisma.section.create({
-    data: { questionnaireId: questionnaire.id, titre: 'Général', ordre: 1 },
+    data: { questionnaireId: modele.id, titre: 'Général', ordre: 1 },
   });
-  const questionSatisfaction = await prisma.question.create({
-    data: { sectionId: section.id, intitule: 'Satisfaction globale', type: TypeQuestion.NOTE_5, ordre: 1 },
+  await prisma.question.create({
+    data: {
+      sectionId: section.id,
+      intitule: 'Satisfaction globale',
+      type: TypeQuestion.NOTE_5,
+      obligatoire: true,
+      ordre: 1,
+    },
   });
-  const questionLibre = await prisma.question.create({
-    data: { sectionId: section.id, intitule: 'Vos remarques libres', type: TypeQuestion.TEXTE_LIBRE, ordre: 2, obligatoire: false },
+  await prisma.question.create({
+    data: {
+      sectionId: section.id,
+      intitule: 'Qualité de la restauration',
+      type: TypeQuestion.ECHELLE_4,
+      obligatoire: false,
+      // Une Likert sans intitulé ne veut rien dire pour le répondant.
+      options: {
+        libelles: {
+          '1': 'Pas du tout satisfait·e',
+          '2': 'Plutôt pas satisfait·e',
+          '3': 'Plutôt satisfait·e',
+          '4': 'Tout à fait satisfait·e',
+        },
+      },
+      // Tout le monde n'a pas déjeuné sur place : « sans opinion » évite de
+      // forcer un chiffre au hasard qui fausserait silencieusement la moyenne.
+      autoriseSansOpinion: true,
+      ordre: 2,
+    },
   });
-  return { questionnaire, questionSatisfaction, questionLibre };
+  await prisma.question.create({
+    data: { sectionId: section.id, intitule: 'Vos remarques libres', type: TypeQuestion.TEXTE_LIBRE, ordre: 3, obligatoire: false },
+  });
+  return modele;
+}
+
+// Copie le modèle vers un séminaire puis republie les questions dans l'ordre
+// pour permettre à `soumettreReponses` (utilisé plus bas) de cibler la bonne
+// question sans redéclarer sa structure à chaque séminaire.
+async function creerQuestionnaireSeminaire(modeleId: string, seminaireId: string) {
+  const copie = await copierModeleVersSeminaire(modeleId, seminaireId);
+  const questionnaire = await prisma.questionnaire.findUniqueOrThrow({
+    where: { id: copie.id },
+    include: { sections: { include: { questions: { orderBy: { ordre: 'asc' } } }, orderBy: { ordre: 'asc' } } },
+  });
+  const questions = questionnaire.sections[0]!.questions;
+  return {
+    questionnaire,
+    questionSatisfaction: questions[0]!,
+    questionRestauration: questions[1]!,
+    questionLibre: questions[2]!,
+  };
 }
 
 async function main() {
@@ -95,6 +151,10 @@ async function main() {
       motDePasseHash: null, // lien magique, jamais de mot de passe
     },
   });
+
+  // Un seul modèle dans la bibliothèque du cabinet, copié pour chaque
+  // séminaire qui a besoin d'un questionnaire (voir creerQuestionnaireSeminaire).
+  const modeleEvaluation = await creerModeleEvaluation(cabinet.id);
 
   // ------------------------------------------------------------------
   // Participant recontacté sur plusieurs séminaires (rattaché au cabinet,
@@ -174,7 +234,11 @@ async function main() {
     },
   });
   const { questionnaire: qGrand, questionSatisfaction: qSatGrand, questionLibre: qLibreGrand } =
-    await creerQuestionnaire(seminaireGrand.id);
+    await creerQuestionnaireSeminaire(modeleEvaluation.id, seminaireGrand.id);
+  // PUBLIE pose verrouille_le (trigger) ; encore modifiable tant qu'aucune
+  // soumission n'existe — verrouillé pour de bon dès la première réponse
+  // ci-dessous.
+  await prisma.questionnaire.update({ where: { id: qGrand.id }, data: { statut: StatutQuestionnaire.PUBLIE } });
 
   const texteTresLong =
     "Je tiens à revenir en détail sur l'organisation de ce séminaire, qui a représenté selon moi un vrai tournant dans la façon dont notre réseau régional aborde la formation continue. ".repeat(12) +
@@ -360,7 +424,8 @@ async function main() {
     },
   });
   const { questionnaire: qCloture, questionSatisfaction: qSatCloture, questionLibre: qLibreCloture } =
-    await creerQuestionnaire(seminaireCloture.id, StatutQuestionnaire.FERME);
+    await creerQuestionnaireSeminaire(modeleEvaluation.id, seminaireCloture.id);
+  await prisma.questionnaire.update({ where: { id: qCloture.id }, data: { statut: StatutQuestionnaire.PUBLIE } });
 
   for (let i = 0; i < 5; i++) {
     const participant = await prisma.participant.create({
@@ -376,6 +441,11 @@ async function main() {
       ],
     });
   }
+
+  // Le questionnaire ferme après coup — verrouille_le, posé dès la
+  // publication ci-dessus, est déjà définitif ; seuls dateLimite et statut
+  // restent modifiables après verrouillage.
+  await prisma.questionnaire.update({ where: { id: qCloture.id }, data: { statut: StatutQuestionnaire.FERME } });
 
   // ==================================================================
   // 6. Séminaire archivé — plus ancien, hors du cycle actif.

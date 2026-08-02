@@ -28,7 +28,7 @@ async function creerJeuDeTest() {
   });
 
   const questionnaire = await prisma.questionnaire.create({
-    data: { seminaireId: seminaire.id, titre: 'Évaluation', statut: StatutQuestionnaire.PUBLIE },
+    data: { cabinetId: cabinet.id, seminaireId: seminaire.id, titre: 'Évaluation', statut: StatutQuestionnaire.PUBLIE },
   });
 
   const section = await prisma.section.create({

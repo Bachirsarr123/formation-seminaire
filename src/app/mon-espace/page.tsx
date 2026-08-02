@@ -98,13 +98,20 @@ export default async function PageMonEspace() {
       ) : null}
 
       {phase === 'APRES' ? (
-        <>
-          <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
-            <h2 className="text-[length:var(--taille-md)] mb-1">Votre avis nous intéresse</h2>
-            <p className="text-[color:var(--gris-600)]">Le questionnaire d&apos;évaluation sera bientôt disponible ici.</p>
-          </section>
-          <p className="text-[color:var(--gris-700)]">Merci d&apos;avoir participé à ce séminaire.</p>
-        </>
+        <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+          <h2 className="text-[length:var(--taille-md)] mb-1">Votre avis nous intéresse</h2>
+          <p className="text-[color:var(--gris-600)] mb-3">
+            {contexte.inscription.aRepondu
+              ? "Merci d'avoir répondu à notre questionnaire d'évaluation."
+              : 'Aidez-nous à améliorer ce séminaire en répondant au questionnaire.'}
+          </p>
+          <a
+            href="/mon-espace/questionnaire"
+            className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--couleur-accent)] px-4 text-[color:var(--couleur-accent-contraste)]"
+          >
+            {contexte.inscription.aRepondu ? 'Voir mon évaluation' : 'Répondre au questionnaire'}
+          </a>
+        </section>
       ) : null}
 
       <section aria-label="Vos préférences" className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
