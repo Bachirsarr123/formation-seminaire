@@ -19,7 +19,15 @@ interface TexteFinalite {
  * le code. Chaque cabinet doit la renseigner explicitement avant mise en
  * production — `texteConsentement()` lève une exception si elle est absente
  * plutôt que d'afficher une durée plausible mais fabriquée.
+ *
+ * Un texte de test temporaire (ex. pour débloquer un rendu en local) doit
+ * contenir le marqueur `MARQUEUR_PLACEHOLDER` ci-dessous : c'est ce qui
+ * permet à `validerTextesConsentementProduction()` de le distinguer d'une
+ * vraie mention juridique et de refuser le démarrage en production tant
+ * qu'il n'a pas été remplacé.
  */
+const MARQUEUR_PLACEHOLDER = 'QA TEMPORAIRE';
+
 export const TEXTES_CONSENTEMENT: Record<string, Record<FinaliteConsentement, TexteFinalite>> = {
   'v1.0-2026-07': {
     INSCRIPTION_EVALUATION: {
@@ -38,6 +46,38 @@ export const TEXTES_CONSENTEMENT: Record<string, Record<FinaliteConsentement, Te
     },
   },
 };
+
+/**
+ * Appelée une seule fois au démarrage du serveur (voir `instrumentation.ts`).
+ * En production, un texte de conservation vide ou marqué placeholder ne doit
+ * jamais atteindre un participant réel : mieux vaut que l'application refuse
+ * de démarrer qu'afficher une mention juridique factice.
+ *
+ * `textes`/`version` ne sont paramétrables que pour les tests — les appels
+ * réels utilisent toujours les valeurs par défaut.
+ */
+export function validerTextesConsentementProduction(
+  textes: Record<string, Record<FinaliteConsentement, TexteFinalite>> = TEXTES_CONSENTEMENT,
+  version: string = CONSENTEMENT_VERSION_ACTUELLE,
+): void {
+  if (process.env.NODE_ENV !== 'production') {
+    return;
+  }
+  const textesVersionActuelle = textes[version];
+  if (!textesVersionActuelle) {
+    throw new Error(`Aucun texte de consentement pour la version actuelle (${version}).`);
+  }
+  for (const [finalite, entree] of Object.entries(textesVersionActuelle)) {
+    const duree = entree.dureeConservation;
+    if (!duree.trim() || duree.includes(MARQUEUR_PLACEHOLDER)) {
+      throw new Error(
+        `dureeConservation manquante ou factice pour ${finalite} (version ${version}) : ` +
+          'mention juridique réelle à obtenir du cabinet avant toute mise en ligne — ' +
+          "refus de démarrage plutôt qu'affichage d'un texte non valide à un participant.",
+      );
+    }
+  }
+}
 
 export function texteConsentement(finalite: FinaliteConsentement): TexteFinalite {
   const entree = TEXTES_CONSENTEMENT[CONSENTEMENT_VERSION_ACTUELLE]?.[finalite];
