@@ -125,9 +125,8 @@ async function main() {
     data: { nom: 'Cabinet Méridien Formation', couleurPrimaire: '#0F4C81' },
   });
 
-  // Mot de passe de démonstration uniquement — aucun flux de connexion
-  // organisateur n'est implémenté dans ce lot, ce hash ne sert qu'à respecter
-  // la contrainte de réalisme du modèle (argon2, jamais en clair).
+  // Mot de passe de démonstration — identifiants réels pour se connecter à
+  // l'espace organisateur (lot 4). Ne jamais utiliser hors développement local.
   const motDePasseHash = await argon2.hash('ChangeMe!2026-demo-seed');
 
   await prisma.utilisateur.create({
@@ -141,7 +140,7 @@ async function main() {
     },
   });
 
-  await prisma.utilisateur.create({
+  const formateurIssa = await prisma.utilisateur.create({
     data: {
       cabinetId: cabinet.id,
       email: 'formateur@meridien-formation.test',
@@ -212,6 +211,12 @@ async function main() {
     data: { seminaireId: seminaireMicro.id, contenu: 'Merci pour ce format, à refaire.', codeSuiviHash: 'hash-micro-2' },
   });
 
+  // Un formateur ne voit que ses propres séminaires (lot 4) — au moins deux
+  // affectations pour que ce filtre soit vérifiable, avec des rôles distincts.
+  await prisma.seminaireFormateur.create({
+    data: { seminaireId: seminaireMicro.id, utilisateurId: formateurIssa.id, roleFormateur: 'INTERVENANT' },
+  });
+
   // ==================================================================
   // 2. Séminaire grand groupe (40 participants, 12 sans réponse) —
   //    inclut aussi le cycle annulation / ré-inscription avec aRepondu
@@ -233,6 +238,10 @@ async function main() {
       inscriptionOuverte: true,
     },
   });
+  await prisma.seminaireFormateur.create({
+    data: { seminaireId: seminaireGrand.id, utilisateurId: formateurIssa.id, roleFormateur: 'PRINCIPAL' },
+  });
+
   const { questionnaire: qGrand, questionSatisfaction: qSatGrand, questionLibre: qLibreGrand } =
     await creerQuestionnaireSeminaire(modeleEvaluation.id, seminaireGrand.id);
   // PUBLIE pose verrouille_le (trigger) ; encore modifiable tant qu'aucune
@@ -472,6 +481,52 @@ async function main() {
     await inscrireParticipant({ seminaireId: seminaireArchive.id, participantId: participant.id, source: SourceInscription.IMPORT });
   }
 
+  // ==================================================================
+  // 7. Second cabinet, entièrement indépendant — sert uniquement à vérifier
+  //    l'isolation (lot 4, section B) : un organisateur du Cabinet Méridien
+  //    ne doit jamais atteindre quoi que ce soit ici, et réciproquement.
+  //    Mêmes identifiants de démonstration pour rester testable simplement.
+  // ==================================================================
+  const cabinetB = await prisma.cabinet.create({
+    data: { nom: 'Cabinet Horizon Conseil', couleurPrimaire: '#7A2E8C' },
+  });
+
+  await prisma.utilisateur.create({
+    data: {
+      cabinetId: cabinetB.id,
+      email: 'organisateur@horizon-conseil.test',
+      nom: 'Diallo',
+      prenom: 'Fatoumata',
+      role: RoleUtilisateur.ORGANISATEUR,
+      motDePasseHash,
+    },
+  });
+
+  const participantCabinetB = await prisma.participant.create({
+    data: { cabinetId: cabinetB.id, nom: 'Ndao', prenom: 'Cheikh', email: 'cheikh.ndao@example.test' },
+  });
+
+  const seminaireCabinetB = await prisma.seminaire.create({
+    data: {
+      cabinetId: cabinetB.id,
+      codePublic: genererCodePublicSeminaire(),
+      titre: 'Séminaire du Cabinet Horizon Conseil',
+      dateDebut: new Date('2026-05-20T09:00:00Z'),
+      dateFin: new Date('2026-05-20T17:00:00Z'),
+      lieu: 'Saint-Louis',
+      modalite: Modalite.PRESENTIEL,
+      dureeHeures: 7,
+      statut: StatutSeminaire.PUBLIE,
+      inscriptionOuverte: true,
+    },
+  });
+
+  await inscrireParticipant({
+    seminaireId: seminaireCabinetB.id,
+    participantId: participantCabinetB.id,
+    source: SourceInscription.MANUEL,
+  });
+
   console.log('Seed terminé.');
   console.log(`- ${seminaireMicro.titre} (3 participants, seuil d'anonymat jamais atteint)`);
   console.log(`- ${seminaireGrand.titre} (${TOTAL_PARTICIPANTS_GRAND} participants, ${NB_SANS_REPONSE} sans réponse)`);
@@ -479,6 +534,10 @@ async function main() {
   console.log(`- ${seminaireValidation.titre} (validation requise, 3 en attente / 3 confirmées)`);
   console.log(`- ${seminaireCloture.titre} (clôturé)`);
   console.log(`- ${seminaireArchive.titre} (archivé)`);
+  console.log(`- ${cabinetB.nom} (cabinet indépendant, isolation) : ${seminaireCabinetB.titre}`);
+  console.log('Identifiants de démonstration (mot de passe ChangeMe!2026-demo-seed) :');
+  console.log('  organisatrice@meridien-formation.test');
+  console.log('  organisateur@horizon-conseil.test');
 }
 
 main()

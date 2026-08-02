@@ -21,6 +21,11 @@ model Cabinet {
   // être publique (ex. affichage "séminaire complet").
   emailContact     String?  @map("email_contact")
   telephoneContact String?  @map("telephone_contact")
+  // Secret d'URL du flux d'abonnement agenda (.ics) — distinct de tout jeton
+  // participant, régénérable indépendamment (bouton de révocation visible,
+  // lib/organisateur/agenda.ts). Nullable : généré à la première demande de
+  // flux, pas à la création du cabinet.
+  jetonFluxIcs     String?  @unique @map("jeton_flux_ics")
   createdAt        DateTime @default(now()) @map("created_at")
 
   utilisateurs   Utilisateur[]
@@ -50,11 +55,93 @@ model Utilisateur {
   actif          Boolean         @default(true)
   createdAt      DateTime        @default(now()) @map("created_at")
 
-  cabinet             Cabinet              @relation(fields: [cabinetId], references: [id])
+  cabinet             Cabinet                  @relation(fields: [cabinetId], references: [id])
   seminaireFormateurs SeminaireFormateur[]
+  sessions            SessionOrganisateur[]
+  jetonsAction        JetonActionUtilisateur[]
+  // Inscriptions dont ce compte a régénéré le jeton participant — traçabilité
+  // de l'action (lib/organisateur/participants.ts), jamais l'inverse (un
+  // Utilisateur ne référence aucun participant/inscription qu'il gère au
+  // quotidien, seulement celles dont IL a personnellement déclenché la
+  // régénération).
+  jetonsRegeneres     Inscription[]            @relation("JetonRegenerePar")
 
   @@index([cabinetId])
   @@map("utilisateur")
+}
+
+// ============================================================
+// AUTHENTIFICATION ORGANISATEUR/FORMATEUR
+// ============================================================
+
+// Session par cookie httpOnly, 12h glissantes (expiresAt prolongé à chaque
+// résolution réussie). Le cookie ne porte qu'un jeton opaque : seul son hash
+// est stocké ici, jamais le jeton en clair — une fuite de la table ne rend
+// aucune session utilisable. Cascade sur Utilisateur : un compte désactivé/
+// supprimé ferme immédiatement toutes ses sessions ouvertes.
+model SessionOrganisateur {
+  id            String   @id @default(uuid())
+  utilisateurId String   @map("utilisateur_id")
+  tokenHash     String   @unique @map("token_hash")
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId])
+  @@map("session_organisateur")
+}
+
+enum TypeJetonAction {
+  REINITIALISATION_MOT_DE_PASSE
+  CONNEXION_FORMATEUR
+
+  @@map("type_jeton_action")
+}
+
+// Table unique pour les deux jetons à usage unique de ce lot (réinitialisation
+// de mot de passe, lien magique formateur) : mêmes invariants (une seule
+// utilisation, expiration courte, traçable) — un type au lieu de deux tables
+// qui finiraient par diverger. `tokenHash` pour la même raison que la session
+// ci-dessus. `utiliseLe` posé une fois, jamais réutilisable après.
+model JetonActionUtilisateur {
+  id            String          @id @default(uuid())
+  utilisateurId String          @map("utilisateur_id")
+  type          TypeJetonAction
+  tokenHash     String          @unique @map("token_hash")
+  expiresAt     DateTime        @map("expires_at")
+  utiliseLe     DateTime?       @map("utilise_le")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId, type])
+  @@map("jeton_action_utilisateur")
+}
+
+// Verrouillage de connexion scopé au couple (email, IP) — jamais sur la ligne
+// Utilisateur elle-même : un verrou par email seul est un déni de service
+// trivial (un tiers qui connaît l'adresse d'un organisateur le bloque en
+// échouant volontairement, depuis n'importe où). Ici, un attaquant échouant
+// depuis SON IP ne bloque que le couple (email, cette IP) — jamais l'accès du
+// titulaire légitime depuis sa propre IP habituelle.
+//
+// `emailNormalise` : ce que verifierIdentifiants() reçoit après
+// normaliserEmail() (lib/normalisation.ts), pas l'email brut saisi.
+//
+// Durée de vie courte par construction : une ligne sans échec depuis plus de
+// la fenêtre de verrouillage est traitée comme réinitialisée par la logique
+// applicative (pas de purge en base nécessaire à cette échelle).
+model TentativeConnexionOrganisateur {
+  id             String    @id @default(uuid())
+  emailNormalise String    @map("email_normalise")
+  ip             String
+  tentatives     Int       @default(0)
+  dernierEchecLe DateTime? @map("dernier_echec_le")
+  bloqueJusqua   DateTime? @map("bloque_jusqua")
+
+  @@unique([emailNormalise, ip])
+  @@map("tentative_connexion_organisateur")
 }
 
 // ============================================================
@@ -115,12 +202,12 @@ model Seminaire {
 }
 
 model Module {
-  id            String  @id @default(uuid())
-  seminaireId   String  @map("seminaire_id")
-  titre         String
-  description   String?
-  dureeMinutes  Int     @map("duree_minutes")
-  ordre         Int
+  id           String  @id @default(uuid())
+  seminaireId  String  @map("seminaire_id")
+  titre        String
+  description  String?
+  dureeMinutes Int     @map("duree_minutes")
+  ordre        Int
 
   // Restrict : Seminaire est en suppression logique, on ne veut plus jamais
   // qu'un DELETE physique dessus emporte silencieusement ses modules.
@@ -208,26 +295,33 @@ enum SourceInscription {
 }
 
 model Inscription {
-  id              String            @id @default(uuid())
-  seminaireId     String            @map("seminaire_id")
-  participantId   String            @map("participant_id")
+  id                 String            @id @default(uuid())
+  seminaireId        String            @map("seminaire_id")
+  participantId      String            @map("participant_id")
   // nanoid(21), généré côté application — c'est le jeton de la Règle 1
-  jeton           String            @unique
-  statut          StatutInscription @default(EN_ATTENTE)
-  source          SourceInscription
-  dateInscription DateTime          @default(now()) @map("date_inscription")
-  jetonExpireLe   DateTime?         @map("jeton_expire_le")
-  aRepondu        Boolean           @default(false) @map("a_repondu")
+  jeton              String            @unique
+  statut             StatutInscription @default(EN_ATTENTE)
+  source             SourceInscription
+  dateInscription    DateTime          @default(now()) @map("date_inscription")
+  jetonExpireLe      DateTime?         @map("jeton_expire_le")
+  aRepondu           Boolean           @default(false) @map("a_repondu")
   // Volontairement une DATE sans heure : voir note sur `soumission` plus bas.
-  aReponduLe      DateTime?         @map("a_repondu_le") @db.Date
+  aReponduLe         DateTime?         @map("a_repondu_le") @db.Date
+  // Trace la régénération du jeton (action explicite de l'espace organisateur,
+  // lib/organisateur/participants.ts) : qui, quand. SetNull si le compte est
+  // ensuite supprimé — l'historique de régénération n'a pas besoin de bloquer
+  // la suppression d'un Utilisateur.
+  jetonRegenereLe    DateTime?         @map("jeton_regenere_le")
+  jetonRegenereParId String?           @map("jeton_regenere_par_id")
 
   // Restrict, pas Cascade : une suppression de Participant (RGPD) ne doit
   // jamais silencieusement emporter ses inscriptions. L'app doit d'abord
   // supprimer/anonymiser les inscriptions explicitement, puis le participant
   // — sans risque pour les données d'évaluation, qui n'y sont pas rattachées.
-  seminaire     Seminaire      @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
-  participant   Participant    @relation(fields: [participantId], references: [id], onDelete: Restrict)
-  consentements Consentement[]
+  seminaire        Seminaire      @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+  participant      Participant    @relation(fields: [participantId], references: [id], onDelete: Restrict)
+  jetonRegenerePar Utilisateur?   @relation("JetonRegenerePar", fields: [jetonRegenereParId], references: [id], onDelete: SetNull)
+  consentements    Consentement[]
   // (Inscription elle-même est une ligne "légère" : la supprimer pour un
   // participant donné ne touche à aucune donnée d'évaluation, cf. plus haut.)
 
