@@ -2,17 +2,17 @@
 // nécessaires car les séminaires du seed principal sont tous déjà passés
 // par rapport à la date courante). Fixtures jetables, à recréer si la base
 // de test est réinitialisée.
-export const CODE_PUBLIC_BLEU = 'LM909w9dhA';
-export const CODE_PUBLIC_VERT = 'd5RRP2HPan';
-export const CODE_PUBLIC_ORANGE = 'z_ZxTqAsux';
-export const CODE_PUBLIC_COMPLET = 'm_CfXZdz10';
-export const CODE_PUBLIC_FERME = 'o0J_vvi0pU';
-export const JETON_ANNULE = 'iK2EcEQM_MNy_CJ-SASbe';
+export const CODE_PUBLIC_BLEU = '476NEa1Wb6';
+export const CODE_PUBLIC_VERT = '1V0p6fITR3';
+export const CODE_PUBLIC_ORANGE = 'iLI059a90E';
+export const CODE_PUBLIC_COMPLET = '1rRGCFSYVm';
+export const CODE_PUBLIC_FERME = 'M_muySEADS';
+export const JETON_ANNULE = 'uXNIb0mYWRFLY3VRsCQJK';
 // Séminaire terminé (phase APRES), questionnaire publié, jamais répondu —
 // voir scripts/fixtures-qa.ts. Deux jetons distincts : chaque test e2e doit
 // partir d'un jeton jamais utilisé (une soumission consomme aRepondu).
-export const JETON_QUESTIONNAIRE = 'u7B_TeROEeKMJbyY9aXpL';
-export const JETON_QUESTIONNAIRE_VALIDATION = 'OCmrdmqfFl6zaJQcsiuY7';
+export const JETON_QUESTIONNAIRE = '_enwVqisrHqZzBrYfb5M2';
+export const JETON_QUESTIONNAIRE_VALIDATION = 'c29q7ncJtuflwhmitOX4W';
 
 /**
  * En local, toutes les requêtes Playwright arrivent sans en-tête

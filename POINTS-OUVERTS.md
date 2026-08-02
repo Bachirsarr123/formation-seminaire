@@ -9,14 +9,6 @@ TCP plutôt que par requête HTTP, absence de reporter HTML. Elle n'a pas
 encore été éprouvée en CI ni sur une autre machine. À surveiller à la
 prochaine exécution hors de cet environnement.
 
-## "/" renvoie 404
-
-Taper le domaine nu (`/`) renvoie un 404 : aucune route n'existe à cet
-emplacement, toutes les pages réelles sont sous `/p/[jeton]`, `/s/[codePublic]`
-et `/mon-espace`. Quelqu'un qui arrive sur le domaine sans lien précis doit
-pouvoir atterrir quelque part (page d'accueil du cabinet, redirection, ou
-message explicite). Relève du lot agenda — non traité ici.
-
 ## Durée de conservation RGPD à obtenir du cabinet — bloquant avant mise en ligne
 
 Les trois `dureeConservation` de `src/lib/consentement/textes.ts` (version
@@ -34,3 +26,13 @@ vide ou porte le marqueur placeholder. Donc tant que le cabinet n'a pas fourni
 les vraies mentions, une mise en production plantera au démarrage — c'est
 volontaire, plutôt que d'afficher un texte juridique factice à un vrai
 participant.
+
+## Hypothèse assumée : un déploiement sert un seul cabinet
+
+`src/app/page.tsx` (page d'accueil, lot 4) affiche « le » cabinet en prenant
+le plus ancien (`Cabinet.findFirst` trié par `createdAt`). Le schéma est
+multi-cabinet (isolation testée à l'étape 3), mais rien dans l'application
+ne résout de tenant par domaine/sous-domaine — l'hypothèse est qu'un
+déploiement réel correspond à un seul cabinet actif, le multi-cabinet du
+schéma servant surtout à prouver l'isolation des données. Si un vrai besoin
+multi-tenant sur un même domaine apparaît, cette page devra changer.
