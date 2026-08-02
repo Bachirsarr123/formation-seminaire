@@ -20,7 +20,7 @@ test.describe('Connexion organisateur', () => {
     await page.getByLabel('Mot de passe').fill(MOT_DE_PASSE);
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
-    await expect(page).toHaveURL(/\/organisateur$/);
+    await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
     await expect(page.getByText('Cabinet Méridien Formation')).toBeVisible();
 
     await page.getByRole('button', { name: 'Se déconnecter' }).click();
@@ -103,7 +103,7 @@ test('réinitialisation du mot de passe : le nouveau mot de passe fonctionne ens
   await page.getByLabel('E-mail').fill(email);
   await page.getByLabel('Mot de passe').fill('NouveauMotDePasseE2E!1');
   await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/\/organisateur$/);
+  await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
 });
 
 test('lien magique formateur : accède en lecture seule, jamais réutilisable', async ({ page }) => {
@@ -131,14 +131,17 @@ test('lien magique formateur : accède en lecture seule, jamais réutilisable', 
   await page.goto(`/organisateur/connexion/formateur/${jeton}`);
   await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
 
-  await expect(page).toHaveURL(/\/organisateur$/);
+  await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
   await expect(page.getByText('Cabinet lien magique e2e')).toBeVisible();
-  await expect(page.getByText('FORMATEUR')).toBeVisible();
+  // Lecture seule : pas de bouton de création (couvert en détail par
+  // organisateur-seminaires.spec.ts) — ici on vérifie surtout la mécanique
+  // de connexion/session.
+  await expect(page.getByRole('link', { name: 'Nouveau séminaire' })).toHaveCount(0);
 
   // Se déconnecter puis retenter le même lien : refusé (usage unique).
   await page.getByRole('button', { name: 'Se déconnecter' }).click();
   await page.goto(`/organisateur/connexion/formateur/${jeton}`);
   await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
   await expect(page.getByText('Ce lien est invalide ou a expiré.')).toBeVisible();
-  await expect(page).not.toHaveURL(/\/organisateur$/);
+  await expect(page).not.toHaveURL(/\/organisateur\/seminaires$/);
 });

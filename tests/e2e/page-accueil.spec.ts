@@ -26,10 +26,10 @@ test.describe('Page d\'accueil "/" — résout le 404 du lot 2, dans les trois c
     await page.getByLabel('E-mail').fill(EMAIL_ORGANISATRICE);
     await page.getByLabel('Mot de passe').fill(MOT_DE_PASSE);
     await page.getByRole('button', { name: 'Se connecter' }).click();
-    await expect(page).toHaveURL(/\/organisateur$/);
+    await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
 
     await page.goto('/');
-    await expect(page).toHaveURL(/\/organisateur$/);
+    await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
 
     await contexte.close();
   });

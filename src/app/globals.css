@@ -320,3 +320,59 @@ button {
   background: var(--gris-000);
   border-top: 1px solid var(--gris-100);
 }
+
+/* ============================================================
+   AGENDA — vue mensuelle (espace organisateur, lot 4)
+
+   Une grille CSS, pas un moteur de calendrier : chaque semaine est un bloc
+   indépendant (en-tête des jours + zone de bandeaux). grid-auto-flow: dense
+   laisse le navigateur empiler naturellement les séminaires qui se
+   chevauchent sur plusieurs lignes, sans calcul de "voie" côté serveur.
+   ============================================================ */
+.agenda-semaine {
+  border: 1px solid var(--gris-100);
+  border-radius: var(--rayon-sm);
+  overflow: hidden;
+}
+
+.agenda-jours {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid var(--gris-100);
+}
+
+.agenda-jour {
+  padding: var(--espace-2);
+  font-family: var(--police-chiffres);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--taille-sm);
+  text-align: center;
+  color: var(--gris-500);
+}
+
+.agenda-jour--hors-mois {
+  color: var(--gris-300);
+  background: var(--gris-050);
+}
+
+.agenda-bandeaux {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: 2px;
+  padding: var(--espace-2);
+  min-height: 2.5rem;
+}
+
+.agenda-bandeau {
+  display: block;
+  min-height: var(--cible-min);
+  padding: var(--espace-2);
+  border-radius: var(--rayon-sm);
+  background: var(--couleur-accent);
+  color: var(--couleur-accent-contraste);
+  font-size: var(--taille-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
