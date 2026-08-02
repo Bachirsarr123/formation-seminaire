@@ -121,6 +121,7 @@ textarea {
 input[type='text'],
 input[type='email'],
 input[type='tel'],
+input[type='password'],
 textarea {
   min-height: var(--cible-min);
   font-size: 16px; /* jamais < 16px : déclenche le zoom automatique iOS */

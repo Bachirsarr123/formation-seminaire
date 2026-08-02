@@ -1,16 +1,22 @@
 import 'server-only';
 import { estConsentementActif } from './consentement';
 
-interface Destinataire {
-  participantId: string;
+// Forme minimale utilisée par l'adaptateur lui-même (nom/prénom pour le
+// message console) — commune aux notifications participant ET utilisateur
+// (organisateur/formateur, lot 4), qui n'ont pas de participantId/telephone.
+interface DestinataireBase {
   nom: string;
   prenom: string;
   email: string | null;
+}
+
+interface Destinataire extends DestinataireBase {
+  participantId: string;
   telephone: string | null;
 }
 
 export interface NotificationAdapter {
-  envoyer(params: { destinataire: Destinataire; sujet: string; corps: string }): Promise<void>;
+  envoyer(params: { destinataire: DestinataireBase; sujet: string; corps: string }): Promise<void>;
 }
 
 // Seul adaptateur pour ce lot : aucun fournisseur d'email/SMS n'est intégré
@@ -80,4 +86,30 @@ export async function envoyerInformationFormations(
 
   await adaptateurActif.envoyer({ destinataire, sujet: 'Nos prochaines formations', corps });
   return { envoye: true };
+}
+
+// ============================================================
+// Comptes organisateur/formateur (lot 4) — jamais soumis à
+// estConsentementActif : ce ne sont pas des participants, et ces messages
+// (réinitialisation, lien de connexion) sont l'exécution d'une action que la
+// personne vient de demander elle-même, pas de la prospection.
+// ============================================================
+
+export async function envoyerLienReinitialisationMotDePasse(
+  destinataire: DestinataireBase,
+  lien: string,
+): Promise<void> {
+  await adaptateurActif.envoyer({
+    destinataire,
+    sujet: 'Réinitialisation de votre mot de passe',
+    corps: `Ce lien est valable une heure et ne fonctionne qu'une fois : ${lien}`,
+  });
+}
+
+export async function envoyerLienMagiqueFormateur(destinataire: DestinataireBase, lien: string): Promise<void> {
+  await adaptateurActif.envoyer({
+    destinataire,
+    sujet: 'Votre lien de connexion',
+    corps: `Ce lien est valable 15 minutes et ne fonctionne qu'une fois : ${lien}`,
+  });
 }
