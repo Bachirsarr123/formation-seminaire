@@ -1,5 +1,6 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { CODE_PUBLIC_BLEU, ipFactice } from './fixtures';
+import { creerSeminaireOuvert, supprimerCabinetCompletement, type SeminaireOuvertFixture } from './creer-fixtures';
+import { ipFactice } from './fixtures';
 
 const CIBLE_MINIMUM = 44;
 
@@ -14,11 +15,21 @@ async function verifierCibleTactile(locator: Locator, nom: string) {
   }
 }
 
+let fixture: SeminaireOuvertFixture;
+
+test.beforeAll(async () => {
+  fixture = await creerSeminaireOuvert();
+});
+
+test.afterAll(async () => {
+  await supprimerCabinetCompletement(fixture.cabinetId);
+});
+
 test('cibles tactiles ≥ 44px — page publique et formulaire', async ({ page }) => {
-  await page.goto(`/s/${CODE_PUBLIC_BLEU}`);
+  await page.goto(`/s/${fixture.codePublic}`);
   await verifierCibleTactile(page.getByRole('link', { name: "Je m'inscris" }), 'CTA "Je m\'inscris" (page publique)');
 
-  await page.goto(`/s/${CODE_PUBLIC_BLEU}/inscription`);
+  await page.goto(`/s/${fixture.codePublic}/inscription`);
   await verifierCibleTactile(page.getByRole('button', { name: "Je m'inscris" }), 'bouton de soumission');
 
   // La case à cocher elle-même est petite (20px, rendu natif) : la cible
@@ -36,7 +47,7 @@ test('cibles tactiles ≥ 44px — page publique et formulaire', async ({ page }
 
 test('cibles tactiles ≥ 44px — confirmation et mon-espace', async ({ page }) => {
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': ipFactice() });
-  await page.goto(`/s/${CODE_PUBLIC_BLEU}/inscription`);
+  await page.goto(`/s/${fixture.codePublic}/inscription`);
   await page.getByLabel('Prénom').fill('Cible');
   await page.getByLabel('Nom', { exact: true }).fill('Tactile');
   await page.getByLabel('E-mail').fill(`cible.tactile.${Date.now()}@example.test`);

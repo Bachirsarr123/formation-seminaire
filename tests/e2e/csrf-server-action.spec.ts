@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
-import { CODE_PUBLIC_BLEU, ipFactice } from './fixtures';
+import { creerSeminaireOuvert, supprimerCabinetCompletement, type SeminaireOuvertFixture } from './creer-fixtures';
+import { ipFactice } from './fixtures';
 
 /**
  * Les Server Actions Next.js vérifient nativement l'origine de la requête
@@ -19,8 +20,18 @@ import { CODE_PUBLIC_BLEU, ipFactice } from './fixtures';
  * dès le second run.
  */
 
-async function recupererFormulaireEncode(request: APIRequestContext, baseURL: string) {
-  const reponse = await request.get(`${baseURL}/s/${CODE_PUBLIC_BLEU}/inscription`);
+let fixture: SeminaireOuvertFixture;
+
+test.beforeAll(async () => {
+  fixture = await creerSeminaireOuvert();
+});
+
+test.afterAll(async () => {
+  await supprimerCabinetCompletement(fixture.cabinetId);
+});
+
+async function recupererFormulaireEncode(request: APIRequestContext, baseURL: string, codePublic: string) {
+  const reponse = await request.get(`${baseURL}/s/${codePublic}/inscription`);
   const html = await reponse.text();
 
   const extraire = (motif: RegExp) => {
@@ -50,9 +61,9 @@ function corpsMultipart(champs: Awaited<ReturnType<typeof recupererFormulaireEnc
 }
 
 test('une Server Action appelée avec une origine étrangère est rejetée avant de s\'exécuter', async ({ request, baseURL }) => {
-  const champs = await recupererFormulaireEncode(request, baseURL!);
+  const champs = await recupererFormulaireEncode(request, baseURL!, fixture.codePublic);
 
-  const reponse = await request.post(`${baseURL}/s/${CODE_PUBLIC_BLEU}/inscription`, {
+  const reponse = await request.post(`${baseURL}/s/${fixture.codePublic}/inscription`, {
     headers: { Origin: 'https://evil.example', 'x-forwarded-for': ipFactice() },
     multipart: corpsMultipart(champs),
   });
@@ -62,9 +73,9 @@ test('une Server Action appelée avec une origine étrangère est rejetée avant
 });
 
 test('la même requête, avec l\'origine du déploiement, atteint bien l\'action', async ({ request, baseURL }) => {
-  const champs = await recupererFormulaireEncode(request, baseURL!);
+  const champs = await recupererFormulaireEncode(request, baseURL!, fixture.codePublic);
 
-  const reponse = await request.post(`${baseURL}/s/${CODE_PUBLIC_BLEU}/inscription`, {
+  const reponse = await request.post(`${baseURL}/s/${fixture.codePublic}/inscription`, {
     headers: { Origin: baseURL!, 'x-forwarded-for': ipFactice() },
     multipart: corpsMultipart(champs),
   });

@@ -1,8 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { CODE_PUBLIC_BLEU, ipFactice } from './fixtures';
+import { creerSeminaireOuvert, supprimerCabinetCompletement, type SeminaireOuvertFixture } from './creer-fixtures';
+import { ipFactice } from './fixtures';
+
+let fixture: SeminaireOuvertFixture;
+
+test.beforeAll(async () => {
+  fixture = await creerSeminaireOuvert();
+});
+
+test.afterAll(async () => {
+  await supprimerCabinetCompletement(fixture.cabinetId);
+});
 
 test('focus visible à chaque étape, honeypot jamais atteint, aucun piège clavier', async ({ page }) => {
-  await page.goto(`/s/${CODE_PUBLIC_BLEU}/inscription`);
+  await page.goto(`/s/${fixture.codePublic}/inscription`);
 
   const nomsRencontres: string[] = [];
   let honeypotAtteint = false;
@@ -40,7 +51,7 @@ test('focus visible à chaque étape, honeypot jamais atteint, aucun piège clav
 
 test('inscription complétée entièrement au clavier (aucune souris)', async ({ page }) => {
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': ipFactice() });
-  await page.goto(`/s/${CODE_PUBLIC_BLEU}/inscription`);
+  await page.goto(`/s/${fixture.codePublic}/inscription`);
 
   await page.getByLabel('Prénom').focus();
   await page.keyboard.type('Clavier');

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { CODE_PUBLIC_VERT, ipFactice } from './fixtures';
+import { creerSeminaireOuvert, supprimerCabinetCompletement, type SeminaireOuvertFixture } from './creer-fixtures';
+import { ipFactice } from './fixtures';
 
 // Contrainte la plus importante du lot : le formulaire doit fonctionner
 // entièrement sans JavaScript côté page (Server Action + formulaire HTML
@@ -7,9 +8,19 @@ import { CODE_PUBLIC_VERT, ipFactice } from './fixtures';
 // Playwright pilote toujours le navigateur via CDP, pas via le JS de la page.
 test.use({ javaScriptEnabled: false });
 
+let fixture: SeminaireOuvertFixture;
+
+test.beforeAll(async () => {
+  fixture = await creerSeminaireOuvert();
+});
+
+test.afterAll(async () => {
+  await supprimerCabinetCompletement(fixture.cabinetId);
+});
+
 test("inscription complète sans JavaScript, jusqu'à la confirmation", async ({ page }) => {
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': ipFactice() });
-  await page.goto(`/s/${CODE_PUBLIC_VERT}/inscription`);
+  await page.goto(`/s/${fixture.codePublic}/inscription`);
 
   await page.getByLabel('Prénom').fill('Aissatou');
   await page.getByLabel('Nom', { exact: true }).fill('Ba');

@@ -1,6 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '../../src/lib/prisma';
-import { CODE_PUBLIC_VERT, ipFactice } from './fixtures';
+import { creerSeminaireOuvert, supprimerCabinetCompletement, type SeminaireOuvertFixture } from './creer-fixtures';
+import { ipFactice } from './fixtures';
+
+let fixture: SeminaireOuvertFixture;
+
+test.beforeAll(async () => {
+  fixture = await creerSeminaireOuvert();
+});
+
+test.afterAll(async () => {
+  await supprimerCabinetCompletement(fixture.cabinetId);
+});
 
 test('réseau Slow 3G : formulaire utilisable, double-clic ne crée pas de doublon', async ({ page, context }) => {
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': ipFactice() });
@@ -12,7 +23,7 @@ test('réseau Slow 3G : formulaire utilisable, double-clic ne crée pas de doubl
     latency: 400,
   });
 
-  await page.goto(`/s/${CODE_PUBLIC_VERT}/inscription`);
+  await page.goto(`/s/${fixture.codePublic}/inscription`);
   await page.getByLabel('Prénom').fill('Reseau');
   await page.getByLabel('Nom', { exact: true }).fill('Lent');
   const email = `reseau.lent.${Date.now()}@example.test`;

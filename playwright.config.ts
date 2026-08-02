@@ -34,13 +34,11 @@ export default defineConfig({
   // Sans ce bloc, la suite est impossible à exécuter sur une machine propre.
   webServer: {
     command: 'npm run dev',
-    // Vérification par connexion TCP brute, pas par requête HTTP : l'app n'a
-    // aucune route qui répond 2xx/3xx sur "/" (toutes les routes réelles sont
-    // sous /p/[jeton], /s/[codePublic], /mon-espace — un 404 sur "/" est le
-    // comportement correct de l'app). Avec `url`, Playwright n'aurait jamais
-    // considéré le serveur comme prêt et aurait toujours expiré au bout de
-    // 180s malgré un serveur réellement opérationnel en ~10s.
-    port: 3000,
+    // Vérification par requête HTTP réelle sur "/" (depuis le lot 4, cette
+    // route répond effectivement — auparavant elle 404ait et seule une
+    // vérification TCP brute par port fonctionnait). Une requête HTTP confirme
+    // que le pipeline Next.js répond, pas seulement qu'un socket écoute.
+    url: 'http://localhost:3000/',
     reuseExistingServer: !process.env.CI,
     timeout: 180000,
     stdout: 'pipe',

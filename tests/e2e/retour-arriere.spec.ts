@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '../../src/lib/prisma';
-import { CODE_PUBLIC_ORANGE, ipFactice } from './fixtures';
+import { creerSeminaireOuvert, supprimerCabinetCompletement, type SeminaireOuvertFixture } from './creer-fixtures';
+import { ipFactice } from './fixtures';
+
+let fixture: SeminaireOuvertFixture;
+
+test.beforeAll(async () => {
+  fixture = await creerSeminaireOuvert();
+});
+
+test.afterAll(async () => {
+  await supprimerCabinetCompletement(fixture.cabinetId);
+});
 
 test("retour arrière après succès : bouton pas bloqué, renvoi sans doublon", async ({ page }) => {
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': ipFactice() });
-  await page.goto(`/s/${CODE_PUBLIC_ORANGE}/inscription`);
+  await page.goto(`/s/${fixture.codePublic}/inscription`);
   const email = `retour.arriere.${Date.now()}@example.test`;
   await page.getByLabel('Prénom').fill('Retour');
   await page.getByLabel('Nom', { exact: true }).fill('Arriere');

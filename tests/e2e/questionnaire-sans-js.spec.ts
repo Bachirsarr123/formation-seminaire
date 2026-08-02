@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { JETON_QUESTIONNAIRE, JETON_QUESTIONNAIRE_VALIDATION } from './fixtures';
+import {
+  creerInscriptionPourQuestionnaire,
+  creerSeminaireTermineAvecQuestionnaire,
+  supprimerCabinetCompletement,
+  type SeminaireTermineAvecQuestionnaireFixture,
+} from './creer-fixtures';
 
 // Contrainte la plus importante du lot (voir globals.css : échelle de
 // notation en input radio natif + révélation du grand chiffre par CSS
@@ -8,8 +13,20 @@ import { JETON_QUESTIONNAIRE, JETON_QUESTIONNAIRE_VALIDATION } from './fixtures'
 // la PAGE — Playwright pilote toujours le navigateur via CDP.
 test.use({ javaScriptEnabled: false });
 
+let fixture: SeminaireTermineAvecQuestionnaireFixture;
+
+test.beforeAll(async () => {
+  fixture = await creerSeminaireTermineAvecQuestionnaire();
+});
+
+test.afterAll(async () => {
+  await supprimerCabinetCompletement(fixture.cabinetId);
+});
+
 test('questionnaire complet, sans JavaScript, jusqu\'à l\'écran de remerciement', async ({ page }) => {
-  await page.goto(`/p/${JETON_QUESTIONNAIRE}`);
+  const { jeton } = await creerInscriptionPourQuestionnaire(fixture);
+
+  await page.goto(`/p/${jeton}`);
   await expect(page).toHaveURL(/\/mon-espace$/);
 
   await page.getByRole('link', { name: 'Répondre au questionnaire' }).click();
@@ -49,7 +66,9 @@ test('questionnaire complet, sans JavaScript, jusqu\'à l\'écran de remerciemen
 });
 
 test('une question obligatoire non répondue bloque nativement l\'envoi (HTML required, sans JS), réponses déjà saisies préservées', async ({ page }) => {
-  await page.goto(`/p/${JETON_QUESTIONNAIRE_VALIDATION}`);
+  const { jeton } = await creerInscriptionPourQuestionnaire(fixture);
+
+  await page.goto(`/p/${jeton}`);
   await page.getByRole('link', { name: 'Répondre au questionnaire' }).click();
 
   const remarque = 'Je remplis ce champ avant de tenter un envoi incomplet.';
