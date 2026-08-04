@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { validerTextesConsentementProduction } from '../../src/lib/consentement/textes';
+import { texteConsentement, validerTextesConsentementProduction } from '../../src/lib/consentement/textes';
 
 const VERSION = 'v-test';
 
@@ -43,5 +43,25 @@ describe('validerTextesConsentementProduction', () => {
     expect(() =>
       validerTextesConsentementProduction(textes('Conservées 3 ans après la fin du séminaire.'), VERSION),
     ).not.toThrow();
+  });
+
+  // Régression : vérifie les VRAIS textes du dépôt (aucun argument, valeurs
+  // par défaut), pas une version synthétique — c'est ce garde-fou qui doit
+  // continuer à bloquer un démarrage en production si quelqu'un bascule
+  // CONSENTEMENT_VERSION_ACTUELLE sans avoir renseigné les trois durées.
+  it('démarre normalement en production avec les vrais textes actuels du dépôt', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(() => validerTextesConsentementProduction()).not.toThrow();
+  });
+});
+
+describe('texteConsentement', () => {
+  it('renvoie les trois textes réels (dureeConservation renseignée) sans lever d\'exception', () => {
+    for (const finalite of ['INSCRIPTION_EVALUATION', 'COMMUNICATIONS', 'PARTAGE_EMPLOYEUR'] as const) {
+      const entree = texteConsentement(finalite);
+      expect(entree.texte.trim()).not.toBe('');
+      expect(entree.dureeConservation.trim()).not.toBe('');
+      expect(entree.dureeConservation).toContain('3 ans');
+    }
   });
 });

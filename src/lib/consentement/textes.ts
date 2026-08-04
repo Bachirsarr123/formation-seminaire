@@ -7,7 +7,7 @@ import type { FinaliteConsentement } from '@prisma/client';
  * elles restent la référence exacte de ce à quoi chaque ligne historique de
  * `consentement` correspond (`versionTexte`).
  */
-export const CONSENTEMENT_VERSION_ACTUELLE = 'v1.0-2026-07';
+export const CONSENTEMENT_VERSION_ACTUELLE = 'v1.0-2026-08';
 
 interface TexteFinalite {
   texte: string;
@@ -43,6 +43,31 @@ export const TEXTES_CONSENTEMENT: Record<string, Record<FinaliteConsentement, Te
       texte:
         "J'autorise la transmission de ma présence et de mon attestation à l'employeur qui finance cette formation.",
       dureeConservation: '',
+    },
+  },
+  // Durée de conservation obtenue du cabinet le 2026-08-04 : 3 ans après la
+  // fin de la formation, pour les trois finalités. v1.0-2026-07 reste
+  // inchangée ci-dessus (jamais réécrite, cf. commentaire en tête de
+  // fichier) — même si elle n'a jamais servi en production et qu'aucune
+  // ligne de consentement réelle ne la référence, une version ne se corrige
+  // pas après coup, elle se remplace par une nouvelle.
+  'v1.0-2026-08': {
+    INSCRIPTION_EVALUATION: {
+      texte:
+        "Vos coordonnées sont utilisées pour gérer votre inscription, vous donner accès aux supports de ce séminaire et vous permettre de l'évaluer.",
+      dureeConservation:
+        "Vos données d'inscription et vos réponses à l'évaluation sont conservées 3 ans après la fin de la formation, puis supprimées.",
+    },
+    COMMUNICATIONS: {
+      texte: 'Je souhaite recevoir des informations sur les prochaines formations de ce cabinet.',
+      dureeConservation:
+        'Si vous acceptez de recevoir ces informations, vos coordonnées sont conservées 3 ans après la fin de la formation, puis supprimées.',
+    },
+    PARTAGE_EMPLOYEUR: {
+      texte:
+        "J'autorise la transmission de ma présence et de mon attestation à l'employeur qui finance cette formation.",
+      dureeConservation:
+        'Si vous autorisez ce partage, il est conservé 3 ans après la fin de la formation, puis supprimé.',
     },
   },
 };
