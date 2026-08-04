@@ -2,12 +2,26 @@
 
 ## Suite e2e à finir de stabiliser
 
-La suite Playwright passe intégralement (18/18) en local sur cette machine,
-mais la configuration a nécessité plusieurs correctifs découverts pendant la
-vérification (voir historique de commits) : vérification `webServer` par port
-TCP plutôt que par requête HTTP, absence de reporter HTML. Elle n'a pas
-encore été éprouvée en CI ni sur une autre machine. À surveiller à la
-prochaine exécution hors de cet environnement.
+La suite Playwright passe intégralement (51/51 après l'étape 9) en local sur
+cette machine, mais la configuration a nécessité plusieurs correctifs
+découverts pendant la vérification (voir historique de commits) :
+vérification `webServer` par port TCP plutôt que par requête HTTP, absence de
+reporter HTML. Elle n'a pas encore été éprouvée en CI ni sur une autre
+machine. À surveiller à la prochaine exécution hors de cet environnement.
+
+Un flake précis, sans rapport avec le code applicatif, est apparu à deux
+reprises pendant la vérification de l'étape 9 (une exécution complète de la
+suite = un flaky, sur deux exécutions, chaque fois une spec différente —
+`organisateur-connexion.spec.ts` une fois, `responsive-320-zoom.spec.ts`
+l'autre) : juste après la soumission du formulaire de connexion, l'URL
+transite un instant par `/organisateur` avant d'atteindre
+`/organisateur/seminaires`, et dépasse occasionnellement le timeout de 15s de
+l'assertion `toHaveURL`. Récupéré par le réessai (`retries: 1`) les deux
+fois, jamais en échec sec sur les deux tentatives — vraisemblablement la même
+famille de lenteur à froid que celle déjà documentée ci-dessus (webServer,
+premier accès à une route), pas un nouveau bug applicatif, mais le symptôme
+est désormais assez caractérisé pour être noté précisément si ça se reproduit
+ailleurs.
 
 ## Bug `Origin: null` — crash corrigé, déclencheur réel toujours ouvert
 
@@ -54,3 +68,22 @@ ne résout de tenant par domaine/sous-domaine — l'hypothèse est qu'un
 déploiement réel correspond à un seul cabinet actif, le multi-cabinet du
 schéma servant surtout à prouver l'isolation des données. Si un vrai besoin
 multi-tenant sur un même domaine apparaît, cette page devra changer.
+
+## Décision assumée : désactivation de compte sans réactivation ni protection du dernier organisateur
+
+`/organisateur/equipe` (lot 4, étape 9) permet de désactiver un compte
+(`actif = false`) mais jamais de le réactiver — aucun écran ne repose ce
+champ à `true` ; c'est exactement ce que demandait le prompt (« désactivation
+… jamais de suppression »), rien de plus. Un seul garde-fou existe contre le
+verrouillage accidentel : un compte ne peut jamais se désactiver lui-même
+(`AutoDesactivationError`, `lib/organisateur/equipe.ts`), et le bouton est en
+plus absent de sa propre ligne dans l'écran (`page.tsx`).
+
+**Ce qui reste ouvert** : rien n'empêche en revanche un organisateur de
+désactiver tous les AUTRES organisateurs du cabinet un par un jusqu'à rester
+seul actif — pas un verrouillage total (lui-même reste connecté), mais une
+situation dont on ne peut plus revenir que par un accès direct à la base
+(aucune réactivation en écran) si ce dernier compte venait ensuite à être
+perdu. Non traité volontairement : le prompt ne demandait que la
+désactivation, pas la protection du dernier compte actif — à réévaluer si ce
+scénario se présente réellement en usage.
