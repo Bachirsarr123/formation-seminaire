@@ -40,6 +40,9 @@ const ROUTES_A_PRECHAUFFER = [
   '/organisateur/seminaires/prechauffage/participants',
   '/organisateur/seminaires/prechauffage/participants/export',
   '/organisateur/seminaires/prechauffage/participants/import',
+  '/organisateur/seminaires/prechauffage/qr.png',
+  '/organisateur/seminaires/prechauffage/qr.svg',
+  '/organisateur/equipe',
 ];
 
 /**

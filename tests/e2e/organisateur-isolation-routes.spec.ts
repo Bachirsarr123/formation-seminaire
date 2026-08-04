@@ -26,6 +26,8 @@ const ROUTES_ID: { nom: string; chemin: (id: string) => string }[] = [
   { nom: 'participants', chemin: (id) => `/organisateur/seminaires/${id}/participants` },
   { nom: 'export participants', chemin: (id) => `/organisateur/seminaires/${id}/participants/export` },
   { nom: 'import participants', chemin: (id) => `/organisateur/seminaires/${id}/participants/import` },
+  { nom: 'QR PNG (diffusion, étape 9)', chemin: (id) => `/organisateur/seminaires/${id}/qr.png` },
+  { nom: 'QR SVG (diffusion, étape 9)', chemin: (id) => `/organisateur/seminaires/${id}/qr.svg` },
 ];
 
 async function connecter(page: import('@playwright/test').Page) {

@@ -1,9 +1,16 @@
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { obtenirSeminaire } from '@/lib/organisateur/seminaires';
 import { LIBELLE_MODALITE, LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
+import {
+  construireLienPublicSeminaire,
+  genererApercuQrSvg,
+  genererTexteInvitation,
+} from '@/lib/organisateur/diffusion';
 import { dupliquerSeminaireAction } from './actions';
+import { BoutonCopier } from './bouton-copier';
 import { BoutonSupprimer } from './bouton-supprimer';
 import { SelecteurStatut } from './selecteur-statut';
 
@@ -129,7 +136,75 @@ export default async function PageFicheSeminaire({ params }: Props) {
         </section>
       ) : null}
 
+      {/* "dès que le statut est PUBLIE" : les transitions ne reviennent
+          jamais en arrière au-delà de EN_COURS (changerStatutSeminaire), donc
+          une fois publié le séminaire reste diffusable pour le reste de son
+          cycle (EN_COURS, CLOTURE, ARCHIVE) — pas seulement le temps où le
+          statut vaut littéralement PUBLIE. */}
+      {seminaire.statut !== 'BROUILLON' ? <SectionDiffusion seminaire={seminaire} /> : null}
+
       {!estFormateur ? <BoutonSupprimer seminaireId={seminaire.id} /> : null}
     </div>
+  );
+}
+
+interface SeminairePourDiffusion {
+  id: string;
+  titre: string;
+  codePublic: string;
+  dateDebut: Date;
+  lieu: string | null;
+  modalite: 'PRESENTIEL' | 'DISTANCIEL' | 'HYBRIDE';
+}
+
+async function SectionDiffusion({ seminaire }: { seminaire: SeminairePourDiffusion }) {
+  const enTetes = await headers();
+  const origine = `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}`;
+  const lien = construireLienPublicSeminaire(origine, seminaire.codePublic);
+  const texteInvitation = genererTexteInvitation(seminaire, lien);
+  const qrApercu = await genererApercuQrSvg(lien);
+
+  return (
+    <section className="flex flex-col gap-4 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+      <h2 className="text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Diffusion</h2>
+
+      <div className="flex flex-col gap-2">
+        <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">{lien}</p>
+        <BoutonCopier valeur={lien} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Voir confirmation/page.tsx (parcours participant) : le SVG généré
+            par la lib QRCode porte une largeur fixe codée dans son markup,
+            qui déborde en flex sans cette contrainte. */}
+        {/* eslint-disable-next-line react/no-danger */}
+        <div className="[&>svg]:h-auto [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: qrApercu }} aria-hidden="true" />
+        {/* flex-wrap ici aussi : sans lui, ces deux liens ("Télécharger en
+            PNG"/"SVG") débordent horizontalement à 320px/zoom 200% — trouvé
+            en reproduisant l'échec responsive-320-zoom.spec.ts (étape 9). */}
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={`/organisateur/seminaires/${seminaire.id}/qr.png`}
+            className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[length:var(--taille-sm)] text-[color:var(--gris-800)]"
+          >
+            Télécharger en PNG
+          </a>
+          <a
+            href={`/organisateur/seminaires/${seminaire.id}/qr.svg`}
+            className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[length:var(--taille-sm)] text-[color:var(--gris-800)]"
+          >
+            Télécharger en SVG
+          </a>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Texte d&apos;invitation</p>
+        <pre className="whitespace-pre-wrap break-words rounded-[var(--rayon-sm)] bg-[color:var(--gris-000)] p-3 font-sans text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">
+          {texteInvitation}
+        </pre>
+        <BoutonCopier valeur={texteInvitation} libelle="Copier le texte d'invitation" />
+      </div>
+    </section>
   );
 }

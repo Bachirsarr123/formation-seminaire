@@ -16,6 +16,7 @@ import {
   obtenirOuGenererJetonFluxIcs,
   resoudreCabinetParJetonFluxIcs,
 } from '../../src/lib/organisateur/agenda';
+import { creerFormateur, desactiverCompte } from '../../src/lib/organisateur/equipe';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 /**
@@ -48,6 +49,13 @@ import { genererCodePublicSeminaire } from '../../src/lib/jeton';
  *   - regenererJetonFluxIcsAction : pas de paramètre d'id venant du client
  *     (agit toujours sur `contexte.cabinetId` de la session) — rien à
  *     usurper, cas non applicable.
+ *   - creerFormateurAction (étape 9) : pas de paramètre de ressource
+ *     existante venant du client (crée toujours dans contexte.cabinetId) —
+ *     rien à usurper ; l'unicité globale de l'e-mail (schema.prisma) est
+ *     couverte dans organisateur-equipe.test.ts, cross-cabinet compris.
+ *   - desactiverCompteAction (étape 9) → desactiverCompte, CE FICHIER pour le
+ *     cas cross-cabinet, organisateur-equipe.test.ts pour le détail complet
+ *     (dont le refus d'auto-désactivation).
  */
 
 async function creerCabinetAvecSeminaire(nomCabinet: string, titreSeminaire: string) {
@@ -278,6 +286,24 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
 
     // L'aperçu n'a été consommé par aucune de ces deux tentatives illégitimes.
     expect(await prisma.importEnAttente.findUnique({ where: { id: rapport.apercuId! } })).not.toBeNull();
+  });
+
+  // Étape 9 (équipe) : le détail (auto-désactivation, doublon d'e-mail
+  // cross-cabinet) est couvert dans organisateur-equipe.test.ts ; un cas ici
+  // pour la cohérence du fichier — desactiverCompte n'agit jamais sur un
+  // compte d'un autre cabinet.
+  it("desactiverCompte ne désactive jamais un compte d'un autre cabinet", async () => {
+    const cabinetA = await prisma.cabinet.create({ data: { nom: 'Cabinet Isolation Équipe A' } });
+    const cabinetB = await prisma.cabinet.create({ data: { nom: 'Cabinet Isolation Équipe B' } });
+    const formateurB = await creerFormateur(cabinetB.id, {
+      nom: 'Isolation',
+      prenom: 'Équipe',
+      email: `isolation.equipe.${Date.now()}@example.test`,
+    });
+
+    expect(await desactiverCompte(cabinetA.id, formateurB.id, 'un-autre-utilisateur')).toBe(false);
+    const relu = await prisma.utilisateur.findUniqueOrThrow({ where: { id: formateurB.id } });
+    expect(relu.actif).toBe(true);
   });
 });
 

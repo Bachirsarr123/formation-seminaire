@@ -235,7 +235,14 @@ export function FormulaireSeminaire({ action, formateursDisponibles, valeursInit
         </button>
       </fieldset>
 
-      {formateursDisponibles.length > 0 ? (
+      {formateursDisponibles.length === 0 ? (
+        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
+          Aucun formateur dans l&apos;équipe.{' '}
+          <a href="/organisateur/equipe" className="underline">
+            Ajouter un formateur
+          </a>
+        </p>
+      ) : (
         <fieldset className="flex flex-col gap-2">
           <legend className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">Formateurs</legend>
           {formateursDisponibles.map((f) => (
@@ -273,7 +280,7 @@ export function FormulaireSeminaire({ action, formateursDisponibles, valeursInit
             </div>
           ))}
         </fieldset>
-      ) : null}
+      )}
 
       <button
         type="submit"
