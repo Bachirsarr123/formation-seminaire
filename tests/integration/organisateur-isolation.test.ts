@@ -2,7 +2,12 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { Modalite, RoleUtilisateur, SourceInscription, StatutInscription, StatutSeminaire } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
 import { inscrireParticipant } from '../../src/lib/inscription';
-import { dupliquerSeminaire, listerSeminaires, obtenirSeminaire } from '../../src/lib/organisateur/seminaires';
+import {
+  changerStatutSeminaire,
+  dupliquerSeminaire,
+  listerSeminaires,
+  obtenirSeminaire,
+} from '../../src/lib/organisateur/seminaires';
 import { listerInscriptionsSeminaire, validerInscription } from '../../src/lib/organisateur/participants';
 import { confirmerImportCsv, previsualiserImportCsv } from '../../src/lib/organisateur/import-participants';
 import {
@@ -24,6 +29,25 @@ import { genererCodePublicSeminaire } from '../../src/lib/jeton';
  * cabinet » viendra avec la fiche séminaire (étape 5, qui prend un id en
  * URL) ; ici, on vérifie l'étanchéité des fonctions de liste/agenda/ICS
  * elles-mêmes.
+ *
+ * Checklist étape 8 (durcissement, point 3) — une écriture croisée corrompt
+ * des données, une lecture croisée les expose : les deux comptent, mais
+ * toutes les Server Actions MUTANTES de l'espace organisateur sont listées
+ * ici explicitement pour qu'une future action oubliée saute aux yeux.
+ * Chaque ligne pointe vers le test qui couvre son cas « cabinet étranger » :
+ *   - creerSeminaireAction    → verifierFormateursDuCabinet, cycle-vie.test.ts
+ *   - modifierSeminaireAction → modifierSeminaire, cycle-vie.test.ts
+ *   - supprimerSeminaireAction → supprimerSeminaireLogiquement, cycle-vie.test.ts
+ *   - changerStatutSeminaireAction → changerStatutSeminaire, CE FICHIER (ajouté à l'étape 8 : seul trou trouvé)
+ *   - dupliquerSeminaireAction → dupliquerSeminaire, CE FICHIER
+ *   - ajouterParticipantAction → ajouterParticipantManuel, organisateur-participants.test.ts
+ *   - validerInscriptionAction/refuserInscriptionAction/annulerInscriptionAction/regenererJetonAction
+ *     → validerInscription/refuserInscription/annulerInscriptionOrganisateur/regenererJetonParticipant,
+ *       organisateur-participants.test.ts
+ *   - previsualiserImportAction/confirmerImportAction → previsualiserImportCsv/confirmerImportCsv, CE FICHIER
+ *   - regenererJetonFluxIcsAction : pas de paramètre d'id venant du client
+ *     (agit toujours sur `contexte.cabinetId` de la session) — rien à
+ *     usurper, cas non applicable.
  */
 
 async function creerCabinetAvecSeminaire(nomCabinet: string, titreSeminaire: string) {
@@ -160,6 +184,26 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
     expect(await obtenirSeminaire(cabinetB.id, seminaire.id)).toBeNull();
     expect(await dupliquerSeminaire(cabinetB.id, seminaire.id)).toBeNull();
     expect(await obtenirSeminaire(cabinetA.id, seminaire.id)).not.toBeNull();
+  });
+
+  // Étape 8 (durcissement, point 3) : seul trou trouvé dans l'audit des
+  // Server Actions mutantes — changerStatutSeminaire vérifie bien
+  // cabinetId dans sa requête (relu dans le code), mais aucun test
+  // n'existait pour le cas cross-cabinet, contrairement à ses cousines
+  // modifierSeminaire/supprimerSeminaireLogiquement/dupliquerSeminaire.
+  it("changerStatutSeminaire ne change jamais le statut d'un séminaire d'un autre cabinet", async () => {
+    const { cabinet: cabinetA, seminaire } = await creerCabinetAvecSeminaire('Cabinet Isolation Statut A', 'Statut A');
+    const { cabinet: cabinetB } = await creerCabinetAvecSeminaire('Cabinet Isolation Statut B', 'Statut B');
+    const statutInitial = seminaire.statut;
+
+    // Cible délibérément un statut DIFFÉRENT du statut initial (sans quoi un
+    // bug qui laisserait passer la mutation resterait invisible : un
+    // "changement" vers la même valeur ne prouve rien).
+    const statutCible = statutInitial === StatutSeminaire.PUBLIE ? StatutSeminaire.EN_COURS : StatutSeminaire.PUBLIE;
+    expect(await changerStatutSeminaire(cabinetB.id, seminaire.id, statutCible)).toBeNull();
+
+    const relu = await prisma.seminaire.findUniqueOrThrow({ where: { id: seminaire.id } });
+    expect(relu.statut).toBe(statutInitial);
   });
 
   // Étape 6 (participants) : le cas détaillé (ajout manuel, cycle de

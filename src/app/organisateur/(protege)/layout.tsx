@@ -24,7 +24,7 @@ export default async function LayoutOrganisateurProtege({ children }: { children
         <span className="text-[length:var(--taille-md)] font-semibold text-[color:var(--gris-900)]">
           {cabinet.nom}
         </span>
-        <nav className="flex items-center gap-4 text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
+        <nav className="flex flex-wrap items-center gap-4 text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
           <a href="/organisateur/seminaires">Séminaires</a>
           <a href="/organisateur/seminaires/agenda">Agenda</a>
           <form action={deconnecterAction}>
@@ -34,7 +34,12 @@ export default async function LayoutOrganisateurProtege({ children }: { children
           </form>
         </nav>
       </header>
-      <main className="flex-1 p-4">{children}</main>
+      {/* min-w-0 : un enfant flex a par défaut min-width:auto, qui l'empêche
+          de rétrécir sous la largeur intrinsèque de son contenu (un titre
+          long, un tableau large) — trouvé en testant un débordement
+          horizontal à 320px/zoom 200% (étape 8), pas visible aux tailles
+          usuelles. */}
+      <main className="min-w-0 flex-1 p-4">{children}</main>
     </div>
   );
 }

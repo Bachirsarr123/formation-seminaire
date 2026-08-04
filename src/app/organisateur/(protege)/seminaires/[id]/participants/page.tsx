@@ -44,8 +44,8 @@ export default async function PageParticipants({ params, searchParams }: Props) 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
+        <div className="min-w-0">
+          <h1 className="break-words text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
             Participants — {seminaire.titre}
           </h1>
           <p className="chiffre text-[color:var(--gris-600)]">
@@ -94,7 +94,12 @@ export default async function PageParticipants({ params, searchParams }: Props) 
       {inscriptionsAffichees.length === 0 ? (
         <p className="text-[color:var(--gris-700)]">Aucun participant{filtreStatut ? ' pour ce statut' : ''}.</p>
       ) : (
-        <div className="overflow-x-auto">
+        // min-w-0 : sans lui, ce conteneur (enfant flex-col) refuse de se
+        // laisser contraindre sous la largeur intrinsèque du tableau, qui
+        // déborderait alors la page entière au lieu de rester scrollable
+        // dans son propre cadre — débordement trouvé à 320px/zoom 200%
+        // (étape 8).
+        <div className="min-w-0 overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">

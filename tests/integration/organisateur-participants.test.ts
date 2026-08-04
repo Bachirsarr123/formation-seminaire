@@ -277,9 +277,12 @@ describe('listerInscriptionsSeminaire', () => {
 });
 
 // Décision 7 : la colonne « a répondu » reste en oui/non strict, jamais la
-// date, et jamais dans l'export CSV.
-describe("confidentialité — aReponduLe n'est jamais exposé", () => {
-  it('listerInscriptionsSeminaire ne renvoie pas la clé aReponduLe ; le CSV exclut jeton et « a répondu »', async () => {
+// date, et jamais dans l'export CSV. Étape 8 (durcissement, point 4) : le
+// jeton participant lui-même ne doit jamais transiter par l'espace
+// organisateur — vérifié ici au niveau le plus solide (absent du `select`,
+// donc structurellement absent de l'objet renvoyé, pas juste non affiché).
+describe("confidentialité — aReponduLe et jeton ne sont jamais exposés", () => {
+  it('listerInscriptionsSeminaire ne renvoie ni aReponduLe ni jeton ; le CSV exclut jeton et « a répondu »', async () => {
     const cabinet = await creerCabinet();
     const seminaire = await creerSeminaire(cabinet.id);
     const participant = await creerParticipant(cabinet.id, 'reponse');
@@ -299,6 +302,7 @@ describe("confidentialité — aReponduLe n'est jamais exposé", () => {
     const ligne = liste!.find((i) => i.id === inscription.id)!;
     expect(ligne.aRepondu).toBe(true);
     expect(Object.keys(ligne)).not.toContain('aReponduLe');
+    expect(Object.keys(ligne)).not.toContain('jeton');
 
     const csv = await genererCsvInscriptions(cabinet.id, seminaire.id);
     expect(csv).not.toBeNull();

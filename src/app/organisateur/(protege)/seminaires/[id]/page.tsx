@@ -27,7 +27,13 @@ export default async function PageFicheSeminaire({ params }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
+        {/* min-w-0 + break-words : un titre long est un enfant flex, qui par
+            défaut refuse de rétrécir sous sa largeur en une seule ligne
+            (min-width:auto) plutôt que de passer à la ligne — débordement
+            horizontal trouvé à 320px/zoom 200% (étape 8). */}
+        <h1 className="min-w-0 break-words text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
+          {seminaire.titre}
+        </h1>
         <div className="flex flex-wrap gap-3">
           <a
             href={`/organisateur/seminaires/${seminaire.id}/participants`}

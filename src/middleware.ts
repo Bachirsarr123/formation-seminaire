@@ -25,7 +25,43 @@ import { DUREE_SESSION_MS, NOM_COOKIE_SESSION } from './lib/organisateur/cookie-
  * ne vérifie rien contre la base (Edge, pas de Prisma) : c'est purement
  * optimiste, la validité réelle reste tranchée côté Node à chaque page/action.
  */
+// Une valeur d'en-tête Origin "présente mais pas une URL absolue" (le cas
+// littéral `null` inclus — sérialisation standard d'une origine opaque au
+// sens de la spec Fetch, pas forcément une attaque) fait planter le
+// dispatch interne des Server Actions de Next.js (`TypeError [ERR_INVALID_
+// URL]`) avant même que le code de l'action ne s'exécute : aucun try/catch
+// dans une action ne peut l'intercepter, seul le Middleware tourne assez tôt
+// pour l'empêcher (lot 4, étape 8 — bug isolé sur `modifierSeminaireAction`,
+// reproductible dès l'étape 6, donc dans Next lui-même, pas notre code).
+//
+// Rejet volontairement strict (échec fermé) plutôt qu'une tentative de
+// "réparer" la requête (ex. retirer l'en-tête pour la laisser continuer) :
+// on ne sait pas avec certitude comment le code interne de Next traiterait
+// une origine absente dans ce contexte, et affaiblir sans certitude une
+// vérification qui ressemble à une protection CSRF serait pire que le crash
+// qu'on corrige. Une origine ABSENTE n'est volontairement pas concernée :
+// seule une valeur présente mais invalide déclenche le rejet.
+function estOriginAnalysable(origin: string): boolean {
+  if (origin === 'null') return false;
+  try {
+    new URL(origin);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/organisateur') && request.method === 'POST') {
+    const origin = request.headers.get('origin');
+    if (origin !== null && !estOriginAnalysable(origin)) {
+      return NextResponse.json(
+        { error: "Requête invalide (origine non reconnue) : rechargez la page et réessayez." },
+        { status: 400 },
+      );
+    }
+  }
+
   const response = NextResponse.next();
   response.headers.set('Referrer-Policy', 'no-referrer');
 
