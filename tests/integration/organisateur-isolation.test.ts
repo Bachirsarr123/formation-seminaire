@@ -1,7 +1,9 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { Modalite, RoleUtilisateur, StatutSeminaire } from '@prisma/client';
+import { Modalite, RoleUtilisateur, SourceInscription, StatutInscription, StatutSeminaire } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
+import { inscrireParticipant } from '../../src/lib/inscription';
 import { dupliquerSeminaire, listerSeminaires, obtenirSeminaire } from '../../src/lib/organisateur/seminaires';
+import { listerInscriptionsSeminaire, validerInscription } from '../../src/lib/organisateur/participants';
 import {
   genererFluxIcsCabinet,
   listerSeminairesAgenda,
@@ -157,6 +159,33 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
     expect(await obtenirSeminaire(cabinetB.id, seminaire.id)).toBeNull();
     expect(await dupliquerSeminaire(cabinetB.id, seminaire.id)).toBeNull();
     expect(await obtenirSeminaire(cabinetA.id, seminaire.id)).not.toBeNull();
+  });
+
+  // Étape 6 (participants) : le cas détaillé (ajout manuel, cycle de
+  // statuts, régénération de jeton, libération de place) est couvert dans
+  // organisateur-participants.test.ts ; un cas ici pour la cohérence du
+  // fichier — ni listerInscriptionsSeminaire ni validerInscription ne
+  // laissent jamais fuiter/agir sur une ressource d'un autre cabinet.
+  it("listerInscriptionsSeminaire et validerInscription ne laissent jamais fuiter/agir sur un séminaire d'un autre cabinet", async () => {
+    const { cabinet: cabinetA, seminaire } = await creerCabinetAvecSeminaire('Cabinet Isolation Participants A', 'Participants A');
+    const { cabinet: cabinetB } = await creerCabinetAvecSeminaire('Cabinet Isolation Participants B', 'Participants B');
+
+    const participant = await prisma.participant.create({
+      data: { cabinetId: cabinetA.id, nom: 'Isolation', prenom: 'Test', email: `isolation.${Date.now()}@example.test` },
+    });
+    const inscription = await inscrireParticipant({
+      seminaireId: seminaire.id,
+      participantId: participant.id,
+      source: SourceInscription.MANUEL,
+      statutCible: StatutInscription.EN_ATTENTE,
+    });
+
+    expect(await listerInscriptionsSeminaire(cabinetB.id, seminaire.id)).toBeNull();
+    expect(await listerInscriptionsSeminaire(cabinetA.id, seminaire.id)).not.toBeNull();
+
+    expect(await validerInscription(cabinetB.id, seminaire.id, inscription.id)).toBe(false);
+    const relue = await prisma.inscription.findUniqueOrThrow({ where: { id: inscription.id } });
+    expect(relue.statut).toBe(StatutInscription.EN_ATTENTE);
   });
 });
 

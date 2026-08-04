@@ -19,3 +19,13 @@ export function formaterHeure(date: Date): string {
     timeZone: FUSEAU,
   }).format(date);
 }
+
+// jj/mm/aaaa — utilisé notamment pour l'export CSV des participants.
+export function formaterDateCourte(date: Date): string {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: FUSEAU,
+  }).format(date);
+}

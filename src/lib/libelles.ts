@@ -11,3 +11,16 @@ export const LIBELLE_STATUT_SEMINAIRE: Record<string, string> = {
   CLOTURE: 'Clôturé',
   ARCHIVE: 'Archivé',
 };
+
+export const LIBELLE_STATUT_INSCRIPTION: Record<string, string> = {
+  EN_ATTENTE: 'En attente',
+  CONFIRMEE: 'Confirmée',
+  REFUSEE: 'Refusée',
+  ANNULEE: 'Annulée',
+};
+
+export const LIBELLE_SOURCE_INSCRIPTION: Record<string, string> = {
+  IMPORT: 'Import',
+  MANUEL: 'Manuel',
+  AUTO_INSCRIPTION: 'Auto-inscription',
+};

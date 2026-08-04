@@ -28,24 +28,32 @@ export default async function PageFicheSeminaire({ params }: Props) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
-        {!estFormateur ? (
-          <div className="flex flex-wrap gap-3">
-            <a
-              href={`/organisateur/seminaires/${seminaire.id}/modifier`}
-              className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
-            >
-              Modifier
-            </a>
-            <form action={dupliquer}>
-              <button
-                type="submit"
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={`/organisateur/seminaires/${seminaire.id}/participants`}
+            className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+          >
+            Participants
+          </a>
+          {!estFormateur ? (
+            <>
+              <a
+                href={`/organisateur/seminaires/${seminaire.id}/modifier`}
                 className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
               >
-                Dupliquer
-              </button>
-            </form>
-          </div>
-        ) : null}
+                Modifier
+              </a>
+              <form action={dupliquer}>
+                <button
+                  type="submit"
+                  className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+                >
+                  Dupliquer
+                </button>
+              </form>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {seminaire.description ? <p className="text-[color:var(--gris-700)]">{seminaire.description}</p> : null}
