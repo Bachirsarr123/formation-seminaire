@@ -65,6 +65,7 @@ model Utilisateur {
   // quotidien, seulement celles dont IL a personnellement déclenché la
   // régénération).
   jetonsRegeneres     Inscription[]            @relation("JetonRegenerePar")
+  importsEnAttente    ImportEnAttente[]
 
   @@index([cabinetId])
   @@map("utilisateur")
@@ -196,6 +197,7 @@ model Seminaire {
   inscriptions     Inscription[]
   questionnaires   Questionnaire[]
   messagesAnonymes MessageAnonyme[]
+  importsEnAttente ImportEnAttente[]
 
   @@index([cabinetId])
   @@map("seminaire")
@@ -333,6 +335,40 @@ model Inscription {
   @@index([seminaireId])
   @@index([participantId])
   @@map("inscription")
+}
+
+// Aperçu validé d'un import CSV en masse (lot 4, étape 7), en attente de
+// confirmation par l'organisateur qui l'a téléversé. `donnees` (Json) ne
+// porte QUE les lignes déjà validées par previsualiserImportCsv — jamais le
+// fichier brut, qui n'est ni stocké sur disque ni conservé une fois
+// l'aperçu produit. Existe pour éviter de faire transiter des données
+// personnelles complètes (noms, emails, téléphones) via un champ caché du
+// formulaire de confirmation : ce HTML est mis en cache par le navigateur
+// et peut apparaître dans une capture d'écran.
+//
+// Usage unique PAR SUCCÈS, pas par tentative : confirmerImportCsv ne
+// supprime cette ligne qu'une fois l'écriture réellement effectuée (même
+// transaction verrouillée) — un échec par capacité insuffisante la laisse
+// intacte pour une nouvelle tentative sans réimporter le fichier.
+//
+// Pas de purge active des lignes expirées : même raisonnement que
+// TentativeConnexionOrganisateur ci-dessus — une ligne expirée est traitée
+// comme absente par la logique applicative, inutile à purger à cette
+// échelle. onDelete Cascade sur les deux relations : donnée jetable, sans
+// l'obligation d'audit qui justifie le Restrict d'Inscription.
+model ImportEnAttente {
+  id            String   @id @default(uuid())
+  seminaireId   String   @map("seminaire_id")
+  utilisateurId String   @map("utilisateur_id")
+  donnees       Json
+  expireLe      DateTime @map("expire_le")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  seminaire   Seminaire   @relation(fields: [seminaireId], references: [id], onDelete: Cascade)
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([seminaireId])
+  @@map("import_en_attente")
 }
 
 // ============================================================

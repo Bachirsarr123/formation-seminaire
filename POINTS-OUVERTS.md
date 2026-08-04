@@ -27,6 +27,30 @@ les vraies mentions, une mise en production plantera au démarrage — c'est
 volontaire, plutôt que d'afficher un texte juridique factice à un vrai
 participant.
 
+## Bug : `Origin: null` fait planter `modifierSeminaireAction` (exception non gérée)
+
+Découvert pendant l'étape 7 (import CSV), en isolant un échec réel de
+`tests/e2e/organisateur-seminaire-crud.spec.ts` — reproduit à l'identique sur
+l'arbre de l'étape 6 seule (rien à voir avec `ImportEnAttente` ni l'import
+CSV, écartés explicitement par ce test d'isolation).
+
+Une requête de Server Action portant l'en-tête `Origin: null` (chaîne
+littérale, pas l'absence de l'en-tête) fait planter `modifierSeminaireAction`
+(`src/app/organisateur/(protege)/seminaires/[id]/modifier/actions.ts`) avec
+une exception non gérée : `TypeError [ERR_INVALID_URL]: Invalid URL` (`input:
+'null'`), qui remonte en 500 côté client au lieu d'un message d'erreur
+exploitable. Ce cas d'en-tête `Origin: null` n'est pas un artefact de test :
+il se produit avec certains navigateurs mobiles, après certaines
+redirections, ou depuis un contexte confiné (iframe sandboxée, etc.) — donc
+potentiellement en usage réel, pas seulement sous Playwright.
+
+À traiter à l'étape 8 (durcissement) : les Server Actions de l'espace
+organisateur doivent renvoyer une erreur propre à l'appelant dans ce cas,
+jamais laisser remonter une exception non interceptée. Le test e2e ci-dessus
+reproduit déjà le problème de façon fiable (isolé, `--retries=0`, arbre
+propre) — c'est le critère de correction : il doit passer sans exception
+serveur une fois corrigé.
+
 ## Hypothèse assumée : un déploiement sert un seul cabinet
 
 `src/app/page.tsx` (page d'accueil, lot 4) affiche « le » cabinet en prenant

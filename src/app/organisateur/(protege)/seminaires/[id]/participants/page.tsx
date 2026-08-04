@@ -53,12 +53,22 @@ export default async function PageParticipants({ params, searchParams }: Props) 
             {seminaire.capaciteMax !== null ? ` / ${seminaire.capaciteMax}` : ''}
           </p>
         </div>
-        <a
-          href={`/organisateur/seminaires/${id}/participants/export`}
-          className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
-        >
-          Exporter en CSV
-        </a>
+        <div className="flex flex-wrap gap-3">
+          {!estFormateur ? (
+            <a
+              href={`/organisateur/seminaires/${id}/participants/import`}
+              className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+            >
+              Importer un CSV
+            </a>
+          ) : null}
+          <a
+            href={`/organisateur/seminaires/${id}/participants/export`}
+            className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+          >
+            Exporter en CSV
+          </a>
+        </div>
       </div>
 
       <nav className="flex flex-wrap gap-4 text-[length:var(--taille-sm)]">

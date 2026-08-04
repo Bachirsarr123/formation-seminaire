@@ -4,6 +4,7 @@ import { prisma } from '../../src/lib/prisma';
 import { inscrireParticipant } from '../../src/lib/inscription';
 import { dupliquerSeminaire, listerSeminaires, obtenirSeminaire } from '../../src/lib/organisateur/seminaires';
 import { listerInscriptionsSeminaire, validerInscription } from '../../src/lib/organisateur/participants';
+import { confirmerImportCsv, previsualiserImportCsv } from '../../src/lib/organisateur/import-participants';
 import {
   genererFluxIcsCabinet,
   listerSeminairesAgenda,
@@ -186,6 +187,53 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
     expect(await validerInscription(cabinetB.id, seminaire.id, inscription.id)).toBe(false);
     const relue = await prisma.inscription.findUniqueOrThrow({ where: { id: inscription.id } });
     expect(relue.statut).toBe(StatutInscription.EN_ATTENTE);
+  });
+
+  // Étape 7 (import CSV en masse) : le cas détaillé (aperçu, capacité,
+  // expiration) est couvert dans organisateur-import-participants.test.ts ;
+  // un cas ici pour la cohérence du fichier — previsualiserImportCsv ne
+  // fuite jamais sur un séminaire d'un autre cabinet, et confirmerImportCsv
+  // refuse un apercuId valide mais appartenant soit à un autre cabinet, soit
+  // au même cabinet mais à un autre utilisateur (décision 2 de l'étape 7 :
+  // trois vérifications d'appartenance indépendantes, pas seulement l'id).
+  it("previsualiserImportCsv/confirmerImportCsv ne fuitent/n'agissent jamais sur un séminaire ou un aperçu étranger", async () => {
+    const { cabinet: cabinetA, seminaire } = await creerCabinetAvecSeminaire('Cabinet Isolation Import A', 'Import A');
+    const { cabinet: cabinetB } = await creerCabinetAvecSeminaire('Cabinet Isolation Import B', 'Import B');
+    const organisateurA = await prisma.utilisateur.create({
+      data: {
+        cabinetId: cabinetA.id,
+        email: `orga.import.a.${Date.now()}@example.test`,
+        nom: 'Orga',
+        prenom: 'A',
+        role: RoleUtilisateur.ORGANISATEUR,
+        motDePasseHash: 'x',
+      },
+    });
+    const organisateurAutre = await prisma.utilisateur.create({
+      data: {
+        cabinetId: cabinetA.id,
+        email: `orga.import.autre.${Date.now()}@example.test`,
+        nom: 'Orga',
+        prenom: 'Autre',
+        role: RoleUtilisateur.ORGANISATEUR,
+        motDePasseHash: 'x',
+      },
+    });
+
+    const csv = Buffer.from(`Nom;Prenom;Email\nIsolation;Import;isolation.import.${Date.now()}@example.test`, 'utf-8');
+
+    expect(await previsualiserImportCsv(cabinetB.id, seminaire.id, organisateurA.id, csv)).toBeNull();
+
+    const rapport = await previsualiserImportCsv(cabinetA.id, seminaire.id, organisateurA.id, csv);
+    if (!rapport || 'erreurGlobale' in rapport) throw new Error('rapport attendu');
+
+    // Autre cabinet.
+    expect(await confirmerImportCsv(cabinetB.id, seminaire.id, organisateurA.id, rapport.apercuId!)).toBeNull();
+    // Même cabinet, autre utilisateur que celui qui a prévisualisé.
+    await expect(confirmerImportCsv(cabinetA.id, seminaire.id, organisateurAutre.id, rapport.apercuId!)).rejects.toThrow();
+
+    // L'aperçu n'a été consommé par aucune de ces deux tentatives illégitimes.
+    expect(await prisma.importEnAttente.findUnique({ where: { id: rapport.apercuId! } })).not.toBeNull();
   });
 });
 
