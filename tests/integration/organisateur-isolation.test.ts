@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { Modalite, RoleUtilisateur, StatutSeminaire } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
-import { listerSeminaires } from '../../src/lib/organisateur/seminaires';
+import { dupliquerSeminaire, listerSeminaires, obtenirSeminaire } from '../../src/lib/organisateur/seminaires';
 import {
   genererFluxIcsCabinet,
   listerSeminairesAgenda,
@@ -142,6 +142,21 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
 
     expect(items.map((s) => s.id)).toContain(seminaireAffecte.id);
     expect(items.map((s) => s.id)).not.toContain(seminaireNonAffecte.id);
+  });
+
+  // Étape 5 (fiche, édition, duplication) : le cas complet — obtenirSeminaire,
+  // modifierSeminaire, supprimerSeminaireLogiquement — est couvert en détail
+  // dans organisateur-seminaires-cycle-vie.test.ts ; le 404 (jamais 403) au
+  // niveau route est couvert par tests/e2e/organisateur-seminaire-crud.spec.ts.
+  // Un cas ici pour la cohérence du fichier : ni obtenirSeminaire ni
+  // dupliquerSeminaire ne laissent jamais fuiter une ressource étrangère.
+  it("obtenirSeminaire et dupliquerSeminaire ne renvoient jamais rien pour un séminaire d'un autre cabinet", async () => {
+    const { cabinet: cabinetA, seminaire } = await creerCabinetAvecSeminaire('Cabinet Isolation Fiche A', 'Fiche A');
+    const { cabinet: cabinetB } = await creerCabinetAvecSeminaire('Cabinet Isolation Fiche B', 'Fiche B');
+
+    expect(await obtenirSeminaire(cabinetB.id, seminaire.id)).toBeNull();
+    expect(await dupliquerSeminaire(cabinetB.id, seminaire.id)).toBeNull();
+    expect(await obtenirSeminaire(cabinetA.id, seminaire.id)).not.toBeNull();
   });
 });
 

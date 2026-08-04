@@ -9,6 +9,13 @@ const BASE_URL = 'http://localhost:3000';
 // la validité du paramètre — "prechauffage" n'a besoin de correspondre à
 // aucune donnée réelle, chaque page traite un id/jeton inconnu comme un cas
 // normal (introuvable), sans aucun effet de bord en base.
+//
+// À tenir à jour à chaque nouvelle route ajoutée à l'espace organisateur
+// (étapes 6, 7, 8...) : une route absente d'ici retombe sur la compilation à
+// la demande, avec le risque de lenteur que ce préchauffage existe pour
+// éliminer. Le bug qui a motivé cette remarque : les routes de l'étape 5
+// (nouveau, [id], [id]/modifier) manquaient ici, et un test a échoué en
+// course avec sa propre navigation avant d'être repéré et corrigé.
 const ROUTES_A_PRECHAUFFER = [
   '/',
   '/s/prechauffage',
@@ -27,6 +34,9 @@ const ROUTES_A_PRECHAUFFER = [
   '/organisateur/seminaires',
   '/organisateur/seminaires/agenda',
   '/organisateur/seminaires/agenda.ics',
+  '/organisateur/seminaires/nouveau',
+  '/organisateur/seminaires/prechauffage',
+  '/organisateur/seminaires/prechauffage/modifier',
 ];
 
 /**
