@@ -10,6 +10,7 @@ import {
   ajouterQuestionAction,
   deplacerQuestionAction,
   deplacerSectionAction,
+  dupliquerQuestionnaireAction,
   supprimerQuestionAction,
   supprimerSectionAction,
 } from './actions';
@@ -47,11 +48,16 @@ export default async function PageEditeurQuestionnaire({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="min-w-0 break-words text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
-          {questionnaire.estModele ? questionnaire.nom : questionnaire.titre}
-        </h1>
-        {questionnaire.estModele ? <p className="text-[color:var(--gris-600)]">{questionnaire.titre}</p> : null}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="break-words text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
+            {questionnaire.estModele ? questionnaire.nom : questionnaire.titre}
+          </h1>
+          {questionnaire.estModele ? <p className="text-[color:var(--gris-600)]">{questionnaire.titre}</p> : null}
+        </div>
+        <a href={`/organisateur/questionnaires/${questionnaire.id}/apercu`} className={CLASSE_BOUTON_TEXTE}>
+          Aperçu
+        </a>
       </div>
 
       {verrouillage.structureModifiable ? (
@@ -65,9 +71,17 @@ export default async function PageEditeurQuestionnaire({ params }: Props) {
           <p className="text-[color:var(--gris-800)]">Structure figée : au moins une réponse a déjà été reçue.</p>
           <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
             Modifier une question maintenant agrégerait des réponses à des questions différentes dans les mêmes
-            moyennes. Pour changer quoi que ce soit, dupliquez ce questionnaire et repartez d&apos;une nouvelle
-            version.
+            moyennes. Pour changer quoi que ce soit, la seule voie est de dupliquer ce questionnaire et de repartir
+            d&apos;une nouvelle version modifiable.
           </p>
+          <form action={dupliquerQuestionnaireAction.bind(null, questionnaire.id)}>
+            <button
+              type="submit"
+              className="min-h-[44px] self-start rounded-[var(--rayon-sm)] bg-[color:var(--gris-800)] px-4 text-[color:var(--gris-000)]"
+            >
+              Dupliquer ce questionnaire
+            </button>
+          </form>
         </div>
       )}
 

@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { obtenirSeminaire } from '@/lib/organisateur/seminaires';
-import { LIBELLE_MODALITE, LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
+import { obtenirQuestionnaireActifDuSeminaire } from '@/lib/organisateur/questionnaires';
+import { LIBELLE_MODALITE, LIBELLE_STATUT_QUESTIONNAIRE, LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import {
   construireLienPublicSeminaire,
@@ -136,6 +137,8 @@ export default async function PageFicheSeminaire({ params }: Props) {
         </section>
       ) : null}
 
+      {!estFormateur ? <SectionQuestionnaire seminaireId={seminaire.id} cabinetId={contexte.cabinetId} /> : null}
+
       {/* "dès que le statut est PUBLIE" : les transitions ne reviennent
           jamais en arrière au-delà de EN_COURS (changerStatutSeminaire), donc
           une fois publié le séminaire reste diffusable pour le reste de son
@@ -145,6 +148,36 @@ export default async function PageFicheSeminaire({ params }: Props) {
 
       {!estFormateur ? <BoutonSupprimer seminaireId={seminaire.id} /> : null}
     </div>
+  );
+}
+
+// Un séminaire n'a pas de questionnaire tant que l'organisateur n'en a pas
+// choisi un depuis la bibliothèque (choisir-modele) — lien direct vers
+// l'éditeur une fois qu'il en existe un, y compris une éventuelle nouvelle
+// copie créée après verrouillage (obtenirQuestionnaireActifDuSeminaire
+// retourne toujours le plus récent).
+async function SectionQuestionnaire({ seminaireId, cabinetId }: { seminaireId: string; cabinetId: string }) {
+  const questionnaire = await obtenirQuestionnaireActifDuSeminaire(cabinetId, seminaireId);
+
+  return (
+    <section>
+      <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Questionnaire d&apos;évaluation</h2>
+      {questionnaire ? (
+        <a
+          href={`/organisateur/questionnaires/${questionnaire.id}`}
+          className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+        >
+          {LIBELLE_STATUT_QUESTIONNAIRE[questionnaire.statut]} — {questionnaire.titre}
+        </a>
+      ) : (
+        <a
+          href={`/organisateur/seminaires/${seminaireId}/questionnaire/choisir-modele`}
+          className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+        >
+          Créer le questionnaire d&apos;évaluation
+        </a>
+      )}
+    </section>
   );
 }
 

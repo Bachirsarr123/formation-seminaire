@@ -89,3 +89,29 @@ export async function archiverModele(cabinetId: string, modeleId: string): Promi
   });
   return resultat.count > 0;
 }
+
+export interface QuestionnaireDuSeminaire {
+  id: string;
+  titre: string;
+  statut: StatutQuestionnaire;
+}
+
+/**
+ * Le questionnaire « actif » d'un séminaire, pour la fiche séminaire (lien
+ * direct) et la future page de résultats. Un séminaire peut porter plusieurs
+ * questionnaires au fil du temps (dupliquerQuestionnaire après verrouillage
+ * en crée un nouveau, rattaché au même séminaire) : le plus récent non
+ * archivé est celui qui compte — c'est celui que les participants voient
+ * réellement (mon-espace/questionnaire/page.tsx cible aussi le plus
+ * pertinent par statut PUBLIE, jamais par ancienneté d'insertion).
+ */
+export async function obtenirQuestionnaireActifDuSeminaire(
+  cabinetId: string,
+  seminaireId: string,
+): Promise<QuestionnaireDuSeminaire | null> {
+  return prisma.questionnaire.findFirst({
+    where: { cabinetId, seminaireId, supprimeLe: null },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, titre: true, statut: true },
+  });
+}

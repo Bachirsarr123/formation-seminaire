@@ -59,6 +59,22 @@ spécifique à `next dev` (peu probable en production, à vérifier sur un build
 valides (cookie `SameSite=Lax`) justifient d'assouplir le rejet plutôt que de
 le maintenir strict.
 
+**Nouvelle occurrence (étape 13, lot 5)** : rencontré cette fois sur
+`choisirModeleAction` (rattachement d'un modèle à un séminaire) — une Server
+Action différente de celle qui avait servi à isoler le bug, confirmant qu'il
+n'est pas propre à `modifierSeminaireAction`. Cette fois quasi-systématique
+en vérification (plusieurs échecs consécutifs sur cette machine, contre 2/3
+précédemment), ce qui pointe vers une corrélation avec le délai de réponse
+plutôt qu'un déclencheur purement aléatoire : `choisirModeleAction` redirige
+vers une route dynamique (`/organisateur/questionnaires/[id]`) qui doit
+souvent se compiler à la volée au moment même de la requête (première visite
+en dev) — plus ce délai est long, plus l'anomalie semble probable. Non
+vérifié formellement, mais cohérent avec un problème côté dispatch interne
+des Server Actions de Next (déjà suspecté, voir plus haut) sensible au
+timing. `tests/e2e/organisateur-questionnaire-rattachement.spec.ts` recharge
+et retente automatiquement sur ce message précis (même remède que celui déjà
+affiché à l'utilisateur) plutôt que d'ignorer le cas.
+
 ## Hypothèse assumée : un déploiement sert un seul cabinet
 
 `src/app/page.tsx` (page d'accueil, lot 4) affiche « le » cabinet en prenant

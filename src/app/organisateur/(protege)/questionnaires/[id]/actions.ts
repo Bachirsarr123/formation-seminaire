@@ -1,5 +1,6 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { analyserFormulaireQuestion, analyserFormulaireSection } from '@/lib/organisateur/formulaire-editeur-questionnaire';
@@ -13,6 +14,7 @@ import {
   supprimerSection,
   type Direction,
 } from '@/lib/questionnaire/editeur';
+import { dupliquerQuestionnaire } from '@/lib/questionnaire/dupliquer';
 
 // Réservées aux organisateurs — la page l'exige déjà, même discipline
 // qu'ailleurs dans l'espace organisateur (rôle vérifié explicitement).
@@ -84,4 +86,12 @@ export async function supprimerQuestionAction(questionnaireId: string, questionI
   const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
   await supprimerQuestion(contexte.cabinetId, questionId);
   revalidatePath(`/organisateur/questionnaires/${questionnaireId}`);
+}
+
+// Seule voie une fois la structure figée (bandeau de verrouillage,
+// page.tsx) : une nouvelle copie BROUILLON, prête à être modifiée.
+export async function dupliquerQuestionnaireAction(questionnaireId: string): Promise<void> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+  const copie = await dupliquerQuestionnaire(contexte.cabinetId, questionnaireId);
+  redirect(`/organisateur/questionnaires/${copie.id}`);
 }

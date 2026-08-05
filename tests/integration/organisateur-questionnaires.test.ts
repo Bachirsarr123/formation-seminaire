@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { TypeQuestion } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
-import { archiverModele, creerModele, listerModeles } from '../../src/lib/organisateur/questionnaires';
+import { archiverModele, creerModele, listerModeles, obtenirQuestionnaireActifDuSeminaire } from '../../src/lib/organisateur/questionnaires';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 async function creerCabinet(nom: string) {
@@ -106,6 +106,39 @@ describe('archiverModele — isolation', () => {
     expect(await archiverModele(cabinetA.id, modeleB.id)).toBe(false);
     const relu = await prisma.questionnaire.findUniqueOrThrow({ where: { id: modeleB.id } });
     expect(relu.supprimeLe).toBeNull();
+  });
+});
+
+describe('obtenirQuestionnaireActifDuSeminaire', () => {
+  it('retourne le plus récent quand le séminaire en porte plusieurs (ancien verrouillé + nouvelle copie)', async () => {
+    const cabinet = await creerCabinet('Cabinet questionnaires — actif');
+    const seminaire = await creerSeminaire(cabinet.id, 'Séminaire actif');
+    await prisma.questionnaire.create({
+      data: { cabinetId: cabinet.id, seminaireId: seminaire.id, titre: 'Ancien' },
+    });
+    await new Promise((r) => setTimeout(r, 5)); // createdAt distinct et croissant
+    const recent = await prisma.questionnaire.create({
+      data: { cabinetId: cabinet.id, seminaireId: seminaire.id, titre: 'Récent' },
+    });
+
+    const actif = await obtenirQuestionnaireActifDuSeminaire(cabinet.id, seminaire.id);
+    expect(actif?.id).toBe(recent.id);
+  });
+
+  it("ne retourne jamais le questionnaire d'un séminaire d'un autre cabinet", async () => {
+    const cabinetA = await creerCabinet('Cabinet questionnaires — actif isolation A');
+    const cabinetB = await creerCabinet('Cabinet questionnaires — actif isolation B');
+    const seminaireB = await creerSeminaire(cabinetB.id, 'Séminaire B');
+    await prisma.questionnaire.create({ data: { cabinetId: cabinetB.id, seminaireId: seminaireB.id, titre: 'B' } });
+
+    expect(await obtenirQuestionnaireActifDuSeminaire(cabinetA.id, seminaireB.id)).toBeNull();
+  });
+
+  it("renvoie null si le séminaire n'a aucun questionnaire", async () => {
+    const cabinet = await creerCabinet('Cabinet questionnaires — sans questionnaire');
+    const seminaire = await creerSeminaire(cabinet.id, 'Séminaire sans questionnaire');
+
+    expect(await obtenirQuestionnaireActifDuSeminaire(cabinet.id, seminaire.id)).toBeNull();
   });
 });
 

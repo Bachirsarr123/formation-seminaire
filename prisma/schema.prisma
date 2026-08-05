@@ -470,6 +470,12 @@ model Questionnaire {
   // Suppression logique, même logique que Seminaire : les Soumissions/Reponses
   // qui en dépendent (via Section/Question) restent auditables indéfiniment.
   supprimeLe      DateTime?           @map("supprime_le")
+  // Absente jusqu'au lot 5 (étape 13) : nécessaire pour déterminer le
+  // questionnaire ACTIF d'un séminaire quand il en porte plusieurs au fil du
+  // temps (dupliquerQuestionnaire après verrouillage en crée un nouveau,
+  // rattaché au même séminaire) — id est un uuid v4, jamais ordonnable dans
+  // le temps.
+  createdAt       DateTime            @default(now()) @map("created_at")
 
   cabinet        Cabinet         @relation(fields: [cabinetId], references: [id])
   seminaire      Seminaire?      @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
