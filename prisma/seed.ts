@@ -53,6 +53,8 @@ function piocher<T>(liste: T[], index: number): T {
 // d'un séminaire — pas de tables ModeleQuestionnaire/Section/Question en
 // miroir. Un seul modèle dans la bibliothèque du cabinet, copié pour chaque
 // séminaire qui a besoin d'un questionnaire (lib/questionnaire/copier-modele.ts).
+// Six questions dans deux sections (lot 5) : sans ce modèle par défaut, le
+// premier utilisateur de la bibliothèque affronte une page blanche.
 async function creerModeleEvaluation(cabinetId: string) {
   const modele = await prisma.questionnaire.create({
     data: {
@@ -63,12 +65,12 @@ async function creerModeleEvaluation(cabinetId: string) {
       statut: StatutQuestionnaire.BROUILLON,
     },
   });
-  const section = await prisma.section.create({
-    data: { questionnaireId: modele.id, titre: 'Général', ordre: 1 },
+  const sectionEvaluation = await prisma.section.create({
+    data: { questionnaireId: modele.id, titre: 'Évaluation', ordre: 1 },
   });
   await prisma.question.create({
     data: {
-      sectionId: section.id,
+      sectionId: sectionEvaluation.id,
       intitule: 'Satisfaction globale',
       type: TypeQuestion.NOTE_5,
       obligatoire: true,
@@ -77,8 +79,26 @@ async function creerModeleEvaluation(cabinetId: string) {
   });
   await prisma.question.create({
     data: {
-      sectionId: section.id,
-      intitule: 'Qualité de la restauration',
+      sectionId: sectionEvaluation.id,
+      intitule: "Qualité de l'animation",
+      type: TypeQuestion.NOTE_5,
+      obligatoire: false,
+      ordre: 2,
+    },
+  });
+  await prisma.question.create({
+    data: {
+      sectionId: sectionEvaluation.id,
+      intitule: 'Contenu',
+      type: TypeQuestion.NOTE_5,
+      obligatoire: false,
+      ordre: 3,
+    },
+  });
+  await prisma.question.create({
+    data: {
+      sectionId: sectionEvaluation.id,
+      intitule: 'Organisation matérielle',
       type: TypeQuestion.ECHELLE_4,
       obligatoire: false,
       // Une Likert sans intitulé ne veut rien dire pour le répondant.
@@ -90,33 +110,47 @@ async function creerModeleEvaluation(cabinetId: string) {
           '4': 'Tout à fait satisfait·e',
         },
       },
-      // Tout le monde n'a pas déjeuné sur place : « sans opinion » évite de
-      // forcer un chiffre au hasard qui fausserait silencieusement la moyenne.
+      // Tout le monde ne se prononce pas sur la logistique : « sans opinion »
+      // évite de forcer un chiffre au hasard qui fausserait la moyenne.
       autoriseSansOpinion: true,
-      ordre: 2,
+      ordre: 4,
+    },
+  });
+  const sectionSuite = await prisma.section.create({
+    data: { questionnaireId: modele.id, titre: 'Pour aller plus loin', ordre: 2 },
+  });
+  await prisma.question.create({
+    data: {
+      sectionId: sectionSuite.id,
+      intitule: 'Recommanderiez-vous ce séminaire ?',
+      type: TypeQuestion.NPS,
+      obligatoire: true,
+      ordre: 1,
     },
   });
   await prisma.question.create({
-    data: { sectionId: section.id, intitule: 'Vos remarques libres', type: TypeQuestion.TEXTE_LIBRE, ordre: 3, obligatoire: false },
+    data: { sectionId: sectionSuite.id, intitule: 'Vos remarques libres', type: TypeQuestion.TEXTE_LIBRE, ordre: 2, obligatoire: false },
   });
   return modele;
 }
 
 // Copie le modèle vers un séminaire puis republie les questions dans l'ordre
 // pour permettre à `soumettreReponses` (utilisé plus bas) de cibler la bonne
-// question sans redéclarer sa structure à chaque séminaire.
+// question sans redéclarer sa structure à chaque séminaire. `questions` mis à
+// plat sur les deux sections : les appelants ciblent des champs nommés
+// (jamais un index positionnel dans une section précise), donc un modèle à
+// plusieurs sections ne change rien pour eux.
 async function creerQuestionnaireSeminaire(modeleId: string, seminaireId: string) {
   const copie = await copierModeleVersSeminaire(modeleId, seminaireId);
   const questionnaire = await prisma.questionnaire.findUniqueOrThrow({
     where: { id: copie.id },
     include: { sections: { include: { questions: { orderBy: { ordre: 'asc' } } }, orderBy: { ordre: 'asc' } } },
   });
-  const questions = questionnaire.sections[0]!.questions;
+  const questions = questionnaire.sections.flatMap((section) => section.questions);
   return {
     questionnaire,
     questionSatisfaction: questions[0]!,
-    questionRestauration: questions[1]!,
-    questionLibre: questions[2]!,
+    questionLibre: questions[questions.length - 1]!,
   };
 }
 

@@ -1,4 +1,4 @@
-import type { Modalite, SourceInscription, StatutInscription, StatutSeminaire } from '@prisma/client';
+import type { Modalite, SourceInscription, StatutInscription, StatutSeminaire, TypeQuestion } from '@prisma/client';
 
 // Record<Enum, string> plutôt que Record<string, string> : sous
 // noUncheckedIndexedAccess (tsconfig), un index signature générique renvoie
@@ -30,4 +30,15 @@ export const LIBELLE_SOURCE_INSCRIPTION: Record<SourceInscription, string> = {
   IMPORT: 'Import',
   MANUEL: 'Manuel',
   AUTO_INSCRIPTION: 'Auto-inscription',
+};
+
+export const LIBELLE_TYPE_QUESTION: Record<TypeQuestion, string> = {
+  NOTE_5: 'Note sur 5',
+  NOTE_10: 'Note sur 10',
+  ECHELLE_4: 'Échelle à 4 niveaux',
+  QCM_UNIQUE: 'Choix unique',
+  QCM_MULTIPLE: 'Choix multiple',
+  TEXTE_LIBRE: 'Texte libre',
+  OUI_NON: 'Oui / Non',
+  NPS: 'Recommandation (NPS)',
 };
