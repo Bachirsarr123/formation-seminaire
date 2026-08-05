@@ -17,6 +17,7 @@ import {
   resoudreCabinetParJetonFluxIcs,
 } from '../../src/lib/organisateur/agenda';
 import { creerFormateur, desactiverCompte } from '../../src/lib/organisateur/equipe';
+import { archiverModele, creerModele } from '../../src/lib/organisateur/questionnaires';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 /**
@@ -56,6 +57,14 @@ import { genererCodePublicSeminaire } from '../../src/lib/jeton';
  *   - desactiverCompteAction (étape 9) → desactiverCompte, CE FICHIER pour le
  *     cas cross-cabinet, organisateur-equipe.test.ts pour le détail complet
  *     (dont le refus d'auto-désactivation).
+ *   - creerModeleAction (étape 11, lot 5) : pas de paramètre de ressource
+ *     existante venant du client — rien à usurper, cas non applicable.
+ *   - dupliquerModeleAction → dupliquerQuestionnaire, dupliquer-questionnaire.test.ts
+ *     (modèle et questionnaire de séminaire, cross-cabinet refusé — pas
+ *     dupliqué ici, déjà exhaustif dans ce fichier dédié).
+ *   - archiverModeleAction → archiverModele, CE FICHIER pour le cas
+ *     cross-cabinet, organisateur-questionnaires.test.ts pour le détail
+ *     complet (comptes, exclusion de la bibliothèque, suppression logique).
  */
 
 async function creerCabinetAvecSeminaire(nomCabinet: string, titreSeminaire: string) {
@@ -305,6 +314,21 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
     const relu = await prisma.utilisateur.findUniqueOrThrow({ where: { id: formateurB.id } });
     expect(relu.actif).toBe(true);
   });
+
+  // Étape 11 (bibliothèque de modèles, lot 5) : le détail (comptes,
+  // exclusion de la bibliothèque) est couvert dans
+  // organisateur-questionnaires.test.ts ; un cas ici pour la cohérence du
+  // fichier — archiverModele n'archive jamais un modèle d'un autre cabinet.
+  it("archiverModele n'archive jamais un modèle d'un autre cabinet", async () => {
+    const cabinetA = await prisma.cabinet.create({ data: { nom: 'Cabinet Isolation Questionnaires A' } });
+    const cabinetB = await prisma.cabinet.create({ data: { nom: 'Cabinet Isolation Questionnaires B' } });
+    const modeleB = await creerModele(cabinetB.id, { nom: 'Modèle B', titre: 'Titre B' });
+
+    expect(await archiverModele(cabinetA.id, modeleB.id)).toBe(false);
+    const relu = await prisma.questionnaire.findUniqueOrThrow({ where: { id: modeleB.id } });
+    expect(relu.supprimeLe).toBeNull();
+  });
+
 });
 
 afterAll(async () => {

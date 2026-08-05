@@ -27,6 +27,7 @@ export default async function LayoutOrganisateurProtege({ children }: { children
         <nav className="flex flex-wrap items-center gap-4 text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
           <a href="/organisateur/seminaires">Séminaires</a>
           <a href="/organisateur/seminaires/agenda">Agenda</a>
+          {contexte.role === 'ORGANISATEUR' ? <a href="/organisateur/questionnaires">Questionnaires</a> : null}
           {contexte.role === 'ORGANISATEUR' ? <a href="/organisateur/equipe">Équipe</a> : null}
           <form action={deconnecterAction}>
             <button type="submit" className="text-[color:var(--gris-600)] underline">
