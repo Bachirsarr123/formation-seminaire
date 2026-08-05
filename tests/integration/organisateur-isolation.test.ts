@@ -65,6 +65,12 @@ import { genererCodePublicSeminaire } from '../../src/lib/jeton';
  *   - archiverModeleAction → archiverModele, CE FICHIER pour le cas
  *     cross-cabinet, organisateur-questionnaires.test.ts pour le détail
  *     complet (comptes, exclusion de la bibliothèque, suppression logique).
+ *   - ajouterSectionAction/renommerSection/deplacerSectionAction/supprimerSectionAction/
+ *     ajouterQuestionAction/modifierQuestionAction/deplacerQuestionAction/supprimerQuestionAction
+ *     (étape 12, lot 5) → lib/questionnaire/editeur.ts, entièrement couvert
+ *     dans questionnaire-editeur.test.ts (isolation cross-cabinet ET refus
+ *     par StructureVerrouilleeError une fois la structure figée) — pas
+ *     dupliqué ici, déjà exhaustif dans ce fichier dédié.
  */
 
 async function creerCabinetAvecSeminaire(nomCabinet: string, titreSeminaire: string) {
