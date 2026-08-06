@@ -20,6 +20,7 @@ import {
   verifierLimiteIP,
 } from '@/lib/anti-spam';
 import { envoyerLienInscription } from '@/lib/notification';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 import type { EtatFormulaireInscription, ValeursFormulaireInscription } from './types';
 
 const schemaInscription = z
@@ -139,7 +140,7 @@ export async function inscrireAction(
         email: analyse.data.email || null,
         telephone: analyse.data.telephone || null,
       },
-      `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}/p/${resultat.jeton}`,
+      `${construireOrigineRequete(enTetes)}/p/${resultat.jeton}`,
     );
   }
 

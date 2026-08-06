@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { listerSeminairesAgenda, obtenirOuGenererJetonFluxIcs } from '@/lib/organisateur/agenda';
 import { construireGrilleMois } from '@/lib/organisateur/grille-mois';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 import { regenererJetonFluxIcsAction } from './actions';
 
 interface Props {
@@ -129,7 +130,7 @@ export default async function PageAgenda({ searchParams }: Props) {
 async function SectionAbonnementIcs({ cabinetId }: { cabinetId: string }) {
   const jetonFlux = await obtenirOuGenererJetonFluxIcs(cabinetId);
   const enTetes = await headers();
-  const origine = `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}`;
+  const origine = construireOrigineRequete(enTetes);
   const lienFlux = `${origine}/organisateur/seminaires/agenda.ics?jeton=${jetonFlux}`;
 
   return (

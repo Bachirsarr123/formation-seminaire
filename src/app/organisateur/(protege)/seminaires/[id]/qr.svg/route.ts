@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { obtenirSeminaire } from '@/lib/organisateur/seminaires';
 import { construireLienPublicSeminaire, genererQrSvg } from '@/lib/organisateur/diffusion';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 
 // Voir qr.png/route.ts : même garde, même source (lien public), autre
 // format de sortie.
@@ -16,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const enTetes = await headers();
-  const origine = `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}`;
+  const origine = construireOrigineRequete(enTetes);
   const lien = construireLienPublicSeminaire(origine, seminaire.codePublic);
   const svg = await genererQrSvg(lien);
 

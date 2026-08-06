@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import QRCode from 'qrcode';
 import { lireJetonSession } from '@/lib/session';
 import { resoudreContexteParticipant } from '@/lib/contexte-participant';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-accent';
 import { AccesIntrouvable } from '@/components/acces-introuvable';
 import { BoutonCopier } from './bouton-copier';
@@ -32,7 +33,7 @@ export default async function PageConfirmation({ searchParams }: Props) {
   }
 
   const enTetes = await headers();
-  const origine = `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}`;
+  const origine = construireOrigineRequete(enTetes);
   const lienPersonnel = `${origine}/p/${jeton}`;
   const qrSvg = await QRCode.toString(lienPersonnel, { type: 'svg', margin: 1, width: 180 });
 

@@ -6,13 +6,13 @@ import {
   SourceInscription,
   StatutQuestionnaire,
   StatutSeminaire,
-  TypeQuestion,
 } from '@prisma/client';
 import { verifierEnvironnementDev } from '../src/lib/garde-environnement-dev';
 import { annulerInscription, inscrireParticipant } from '../src/lib/inscription';
 import { genererCodePublicSeminaire } from '../src/lib/jeton';
 import { soumettreReponses } from '../src/lib/soumission';
 import { copierModeleVersSeminaire } from '../src/lib/questionnaire/copier-modele';
+import { creerModeleEvaluationParDefaut } from '../src/lib/questionnaire/modele-defaut';
 
 // Contrairement à `prisma migrate reset` (qui charge .env lui-même et le
 // transmet à ce script quand il l'invoque comme sous-processus), un lancement
@@ -47,91 +47,6 @@ const PRENOMS = [
 
 function piocher<T>(liste: T[], index: number): T {
   return liste[index % liste.length]!;
-}
-
-// Un modèle est un questionnaire comme les autres (schema.prisma), détaché
-// d'un séminaire — pas de tables ModeleQuestionnaire/Section/Question en
-// miroir. Un seul modèle dans la bibliothèque du cabinet, copié pour chaque
-// séminaire qui a besoin d'un questionnaire (lib/questionnaire/copier-modele.ts).
-// Six questions dans deux sections (lot 5) : sans ce modèle par défaut, le
-// premier utilisateur de la bibliothèque affronte une page blanche.
-async function creerModeleEvaluation(cabinetId: string) {
-  const modele = await prisma.questionnaire.create({
-    data: {
-      cabinetId,
-      estModele: true,
-      nom: 'Évaluation à chaud',
-      titre: 'Évaluation à chaud',
-      statut: StatutQuestionnaire.BROUILLON,
-    },
-  });
-  const sectionEvaluation = await prisma.section.create({
-    data: { questionnaireId: modele.id, titre: 'Évaluation', ordre: 1 },
-  });
-  await prisma.question.create({
-    data: {
-      sectionId: sectionEvaluation.id,
-      intitule: 'Satisfaction globale',
-      type: TypeQuestion.NOTE_5,
-      obligatoire: true,
-      ordre: 1,
-    },
-  });
-  await prisma.question.create({
-    data: {
-      sectionId: sectionEvaluation.id,
-      intitule: "Qualité de l'animation",
-      type: TypeQuestion.NOTE_5,
-      obligatoire: false,
-      ordre: 2,
-    },
-  });
-  await prisma.question.create({
-    data: {
-      sectionId: sectionEvaluation.id,
-      intitule: 'Contenu',
-      type: TypeQuestion.NOTE_5,
-      obligatoire: false,
-      ordre: 3,
-    },
-  });
-  await prisma.question.create({
-    data: {
-      sectionId: sectionEvaluation.id,
-      intitule: 'Organisation matérielle',
-      type: TypeQuestion.ECHELLE_4,
-      obligatoire: false,
-      // Une Likert sans intitulé ne veut rien dire pour le répondant.
-      options: {
-        libelles: {
-          '1': 'Pas du tout satisfait·e',
-          '2': 'Plutôt pas satisfait·e',
-          '3': 'Plutôt satisfait·e',
-          '4': 'Tout à fait satisfait·e',
-        },
-      },
-      // Tout le monde ne se prononce pas sur la logistique : « sans opinion »
-      // évite de forcer un chiffre au hasard qui fausserait la moyenne.
-      autoriseSansOpinion: true,
-      ordre: 4,
-    },
-  });
-  const sectionSuite = await prisma.section.create({
-    data: { questionnaireId: modele.id, titre: 'Pour aller plus loin', ordre: 2 },
-  });
-  await prisma.question.create({
-    data: {
-      sectionId: sectionSuite.id,
-      intitule: 'Recommanderiez-vous ce séminaire ?',
-      type: TypeQuestion.NPS,
-      obligatoire: true,
-      ordre: 1,
-    },
-  });
-  await prisma.question.create({
-    data: { sectionId: sectionSuite.id, intitule: 'Vos remarques libres', type: TypeQuestion.TEXTE_LIBRE, ordre: 2, obligatoire: false },
-  });
-  return modele;
 }
 
 // Copie le modèle vers un séminaire puis republie les questions dans l'ordre
@@ -187,7 +102,7 @@ async function main() {
 
   // Un seul modèle dans la bibliothèque du cabinet, copié pour chaque
   // séminaire qui a besoin d'un questionnaire (voir creerQuestionnaireSeminaire).
-  const modeleEvaluation = await creerModeleEvaluation(cabinet.id);
+  const modeleEvaluation = await creerModeleEvaluationParDefaut(cabinet.id);
 
   // ------------------------------------------------------------------
   // Participant recontacté sur plusieurs séminaires (rattaché au cabinet,

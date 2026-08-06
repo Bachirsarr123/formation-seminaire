@@ -10,6 +10,7 @@ import {
   genererApercuQrSvg,
   genererTexteInvitation,
 } from '@/lib/organisateur/diffusion';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 import { dupliquerSeminaireAction } from './actions';
 import { BoutonCopier } from './bouton-copier';
 import { BoutonSupprimer } from './bouton-supprimer';
@@ -192,7 +193,7 @@ interface SeminairePourDiffusion {
 
 async function SectionDiffusion({ seminaire }: { seminaire: SeminairePourDiffusion }) {
   const enTetes = await headers();
-  const origine = `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}`;
+  const origine = construireOrigineRequete(enTetes);
   const lien = construireLienPublicSeminaire(origine, seminaire.codePublic);
   const texteInvitation = genererTexteInvitation(seminaire, lien);
   const qrApercu = await genererApercuQrSvg(lien);

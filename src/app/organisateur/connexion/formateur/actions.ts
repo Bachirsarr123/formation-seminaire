@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { demanderLienMagique } from '@/lib/organisateur/lien-magique-formateur';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 
 export interface EtatLienMagique {
   envoye?: boolean;
@@ -16,7 +17,7 @@ export async function demanderLienMagiqueAction(
 ): Promise<EtatLienMagique> {
   const email = String(formData.get('email') ?? '');
   const enTetes = await headers();
-  const origine = `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}`;
+  const origine = construireOrigineRequete(enTetes);
 
   await demanderLienMagique(email, origine);
 

@@ -12,7 +12,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx --conditions=react-server prisma/seed.ts",
-    "db:reset": "tsx scripts/reset-db.ts"
+    "db:reset": "tsx scripts/reset-db.ts",
+    "init:production": "tsx --conditions=react-server scripts/initialiser-production.ts"
   },
   "prisma": {
     "seed": "tsx --conditions=react-server prisma/seed.ts"

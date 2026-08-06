@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { demanderReinitialisation } from '@/lib/organisateur/reinitialisation-mot-de-passe';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 
 export interface EtatMotDePasseOublie {
   envoye?: boolean;
@@ -15,7 +16,7 @@ export async function demanderReinitialisationAction(
 ): Promise<EtatMotDePasseOublie> {
   const email = String(formData.get('email') ?? '');
   const enTetes = await headers();
-  const origine = `${enTetes.get('x-forwarded-proto') ?? 'https'}://${enTetes.get('host') ?? ''}`;
+  const origine = construireOrigineRequete(enTetes);
 
   await demanderReinitialisation(email, origine);
 
