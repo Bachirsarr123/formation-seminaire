@@ -15,6 +15,7 @@ import {
   type Direction,
 } from '@/lib/questionnaire/editeur';
 import { dupliquerQuestionnaire } from '@/lib/questionnaire/dupliquer';
+import { publierQuestionnaire } from '@/lib/organisateur/questionnaires';
 
 // Réservées aux organisateurs — la page l'exige déjà, même discipline
 // qu'ailleurs dans l'espace organisateur (rôle vérifié explicitement).
@@ -94,4 +95,21 @@ export async function dupliquerQuestionnaireAction(questionnaireId: string): Pro
   const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
   const copie = await dupliquerQuestionnaire(contexte.cabinetId, questionnaireId);
   redirect(`/organisateur/questionnaires/${copie.id}`);
+}
+
+// Formulaire simple (pas de useActionState) : le champ date, natif
+// (type="date"), ne peut pas être soumis dans un format invalide par un
+// navigateur qui respecte la spec — une erreur ici reste une anomalie,
+// remontée à error.tsx comme les autres erreurs inattendues de cet espace.
+export async function publierQuestionnaireAction(questionnaireId: string, formData: FormData): Promise<void> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+
+  const dateLimiteBrut = String(formData.get('dateLimite') ?? '').trim();
+  const dateLimite = dateLimiteBrut ? new Date(dateLimiteBrut) : null;
+  if (dateLimite && Number.isNaN(dateLimite.getTime())) {
+    throw new Error('Date limite invalide.');
+  }
+
+  await publierQuestionnaire(contexte.cabinetId, questionnaireId, dateLimite);
+  revalidatePath(`/organisateur/questionnaires/${questionnaireId}`);
 }

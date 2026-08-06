@@ -1,7 +1,14 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { TypeQuestion } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
-import { archiverModele, creerModele, listerModeles, obtenirQuestionnaireActifDuSeminaire } from '../../src/lib/organisateur/questionnaires';
+import {
+  QuestionnaireIntrouvableError,
+  archiverModele,
+  creerModele,
+  listerModeles,
+  obtenirQuestionnaireActifDuSeminaire,
+  publierQuestionnaire,
+} from '../../src/lib/organisateur/questionnaires';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 async function creerCabinet(nom: string) {
@@ -139,6 +146,49 @@ describe('obtenirQuestionnaireActifDuSeminaire', () => {
     const seminaire = await creerSeminaire(cabinet.id, 'Séminaire sans questionnaire');
 
     expect(await obtenirQuestionnaireActifDuSeminaire(cabinet.id, seminaire.id)).toBeNull();
+  });
+});
+
+describe('publierQuestionnaire', () => {
+  it('passe en PUBLIE, enregistre la dateLimite, pose verrouilleLe (trigger)', async () => {
+    const cabinet = await creerCabinet('Cabinet questionnaires — publication');
+    const seminaire = await creerSeminaire(cabinet.id, 'Séminaire publication');
+    const questionnaire = await prisma.questionnaire.create({
+      data: { cabinetId: cabinet.id, seminaireId: seminaire.id, titre: 'Évaluation' },
+    });
+    const dateLimite = new Date('2026-12-31');
+
+    const publie = await publierQuestionnaire(cabinet.id, questionnaire.id, dateLimite);
+
+    expect(publie.statut).toBe('PUBLIE');
+    expect(publie.dateLimite).toEqual(dateLimite);
+    expect(publie.verrouilleLe).not.toBeNull();
+  });
+
+  it('accepte une dateLimite nulle', async () => {
+    const cabinet = await creerCabinet('Cabinet questionnaires — publication sans échéance');
+    const seminaire = await creerSeminaire(cabinet.id, 'Séminaire publication 2');
+    const questionnaire = await prisma.questionnaire.create({
+      data: { cabinetId: cabinet.id, seminaireId: seminaire.id, titre: 'Évaluation' },
+    });
+
+    const publie = await publierQuestionnaire(cabinet.id, questionnaire.id, null);
+
+    expect(publie.statut).toBe('PUBLIE');
+    expect(publie.dateLimite).toBeNull();
+  });
+
+  it("refuse de publier un questionnaire d'un autre cabinet", async () => {
+    const cabinetA = await creerCabinet('Cabinet questionnaires — publication isolation A');
+    const cabinetB = await creerCabinet('Cabinet questionnaires — publication isolation B');
+    const seminaireB = await creerSeminaire(cabinetB.id, 'Séminaire B');
+    const questionnaireB = await prisma.questionnaire.create({
+      data: { cabinetId: cabinetB.id, seminaireId: seminaireB.id, titre: 'Évaluation B' },
+    });
+
+    await expect(publierQuestionnaire(cabinetA.id, questionnaireB.id, null)).rejects.toThrow(QuestionnaireIntrouvableError);
+    const relu = await prisma.questionnaire.findUniqueOrThrow({ where: { id: questionnaireB.id } });
+    expect(relu.statut).toBe('BROUILLON');
   });
 });
 

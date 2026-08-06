@@ -1,6 +1,9 @@
 import 'server-only';
 import { Prisma, StatutQuestionnaire, type Questionnaire } from '@prisma/client';
 import { prisma } from '../prisma';
+import { QuestionnaireIntrouvableError } from '../questionnaire/dupliquer';
+
+export { QuestionnaireIntrouvableError };
 
 // ============================================================
 // Bibliothèque de modèles du cabinet (lot 5, partie A). Même règle B que
@@ -113,5 +116,31 @@ export async function obtenirQuestionnaireActifDuSeminaire(
     where: { cabinetId, seminaireId, supprimeLe: null },
     orderBy: { createdAt: 'desc' },
     select: { id: true, titre: true, statut: true },
+  });
+}
+
+/**
+ * BROUILLON -> PUBLIE : le trigger `questionnaire_verrouillage_auto`
+ * (migration 20260802123859) pose `verrouilleLe` automatiquement — jamais
+ * ici, jamais modifiable ensuite. `dateLimite` est facultative et reste
+ * modifiable après coup (seule la STRUCTURE se fige, voir
+ * lib/questionnaire/verrouillage.ts). Republier un questionnaire déjà
+ * PUBLIE/FERME est un no-op côté trigger (verrouilleLe déjà posé) ; cette
+ * fonction n'a pas besoin de le distinguer explicitement.
+ */
+export async function publierQuestionnaire(
+  cabinetId: string,
+  questionnaireId: string,
+  dateLimite: Date | null,
+): Promise<Questionnaire> {
+  const questionnaire = await prisma.questionnaire.findFirst({
+    where: { id: questionnaireId, cabinetId, supprimeLe: null },
+    select: { id: true },
+  });
+  if (!questionnaire) throw new QuestionnaireIntrouvableError();
+
+  return prisma.questionnaire.update({
+    where: { id: questionnaireId },
+    data: { statut: StatutQuestionnaire.PUBLIE, dateLimite },
   });
 }

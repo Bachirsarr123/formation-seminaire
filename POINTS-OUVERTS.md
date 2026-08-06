@@ -68,12 +68,59 @@ précédemment), ce qui pointe vers une corrélation avec le délai de réponse
 plutôt qu'un déclencheur purement aléatoire : `choisirModeleAction` redirige
 vers une route dynamique (`/organisateur/questionnaires/[id]`) qui doit
 souvent se compiler à la volée au moment même de la requête (première visite
-en dev) — plus ce délai est long, plus l'anomalie semble probable. Non
-vérifié formellement, mais cohérent avec un problème côté dispatch interne
-des Server Actions de Next (déjà suspecté, voir plus haut) sensible au
-timing. `tests/e2e/organisateur-questionnaire-rattachement.spec.ts` recharge
-et retente automatiquement sur ce message précis (même remède que celui déjà
+en dev) — plus ce délai est long, plus l'anomalie semble probable.
+`tests/e2e/organisateur-questionnaire-rattachement.spec.ts` recharge et
+retente automatiquement sur ce message précis (même remède que celui déjà
 affiché à l'utilisateur) plutôt que d'ignorer le cas.
+
+**Investigation complète (étape 14, lot 5)** : en tentant de faire fonctionner
+l'éditeur de questionnaire sans JavaScript (nouvelle exigence de ce lot,
+jamais demandée pour l'espace organisateur avant), `Origin: null` s'est
+révélé être la valeur envoyée **systématiquement** (pas intermittente) par
+toute navigation POST native (sans JS) sous `/organisateur` — vérifié en
+production (`next build && next start`), pas seulement en dev. Les parcours
+participant sans JS (`/s/*`, `/mon-espace`) ne sont eux jamais affectés :
+`inscription-sans-js.spec.ts` et `questionnaire-sans-js.spec.ts` passent
+proprement en production, aucun `Origin: null` — ces routes n'ont jamais ce
+garde-fou, `estOriginAnalysable` ne s'applique qu'à `/organisateur`.
+
+Tenté d'assouplir le garde-fou (autoriser `Origin: null`/absent, ne rejeter
+que les origines réellement étrangères) pour permettre ce cas légitime : le
+middleware laisse alors passer la requête, mais **Next.js plante ensuite en
+interne** avec exactement `TypeError [ERR_INVALID_URL] { input: 'null' }` —
+le crash originel de l'étape 8, vérifié dans les journaux du serveur de
+production au moment précis de l'échec. Le garde-fou de l'étape 8 n'est donc
+pas seulement une protection CSRF qu'on pourrait relâcher : il masque un
+véritable bug du dispatch interne des Server Actions de Next.js, qui plante
+sur ce cas précis quel que soit notre code. Assouplir revient à remplacer un
+400 propre par un 500 brut — changement rejeté, `src/middleware.ts` reste
+strict (`estOriginAnalysable` inchangé depuis l'étape 8).
+
+**Conclusion retenue** : l'espace organisateur nécessite JavaScript — voir la
+décision assumée ci-dessous. Le point reste ouvert uniquement pour la partie
+JS-activée du bug (intermittent, ~2/3, voir plus haut) : à réévaluer à la
+prochaine montée de version de Next.js, pas quelque chose que ce dépôt peut
+corriger de son côté.
+
+## Décision assumée : l'espace organisateur nécessite JavaScript
+
+Contrairement au parcours participant (`/s/*`, `/mon-espace` — lot 3, testé
+et fonctionnel sans JS en production), l'espace `/organisateur/*` n'est **pas**
+garanti fonctionner sans JavaScript, et ne le sera pas tant que le bug Next.js
+ci-dessus n'est pas corrigé en amont. Assumé volontairement, pas un oubli :
+les organisateurs travaillent sur ordinateur avec un navigateur récent (JS
+activé par défaut, désactivé seulement par choix délibéré ou outil
+d'accessibilité spécifique) — un cadre très différent de celui d'un
+participant sur un lien reçu par SMS/WhatsApp, potentiellement sur un appareil
+ou une connexion contrainte, où « sans JS » protège un vrai usage.
+
+Cause précise : une navigation POST native (sans JS) sous `/organisateur`
+envoie systématiquement `Origin: null`, ce qui fait planter le dispatch
+interne des Server Actions de Next.js (`TypeError [ERR_INVALID_URL]`,
+détail dans la section « Bug Origin: null » ci-dessus) — un bug de Next.js
+lui-même, pas de ce code, et qui ne peut pas être contourné depuis
+`src/middleware.ts` sans transformer un rejet propre (400) en crash brut
+(500). À réévaluer à la prochaine montée de version de Next.js.
 
 ## Hypothèse assumée : un déploiement sert un seul cabinet
 

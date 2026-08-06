@@ -17,7 +17,12 @@ import {
   resoudreCabinetParJetonFluxIcs,
 } from '../../src/lib/organisateur/agenda';
 import { creerFormateur, desactiverCompte } from '../../src/lib/organisateur/equipe';
-import { archiverModele, creerModele } from '../../src/lib/organisateur/questionnaires';
+import {
+  QuestionnaireIntrouvableError,
+  archiverModele,
+  creerModele,
+  publierQuestionnaire,
+} from '../../src/lib/organisateur/questionnaires';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 /**
@@ -71,6 +76,18 @@ import { genererCodePublicSeminaire } from '../../src/lib/jeton';
  *     dans questionnaire-editeur.test.ts (isolation cross-cabinet ET refus
  *     par StructureVerrouilleeError une fois la structure figée) — pas
  *     dupliqué ici, déjà exhaustif dans ce fichier dédié.
+ *   - dupliquerQuestionnaireAction (étape 13, lot 5) → dupliquerQuestionnaire,
+ *     déjà couvert (voir plus haut) — même fonction que dupliquerModeleAction.
+ *   - choisirModeleAction (étape 13) : vérifie explicitement que le séminaire
+ *     appartient au cabinet appelant avant d'invoquer copierModeleVersSeminaire
+ *     (qui ne connaît que la cohérence modèle/séminaire entre eux, pas
+ *     l'identité de l'appelant) — voir le commentaire dans son fichier
+ *     (seminaires/[id]/questionnaire/choisir-modele/actions.ts). Non testable
+ *     unitairement (dépend de cookies()/next/headers) ; couvert par
+ *     organisateur-questionnaire-rattachement.spec.ts (e2e).
+ *   - publierQuestionnaireAction (étape 14) → publierQuestionnaire, CE FICHIER
+ *     pour le cas cross-cabinet, organisateur-questionnaires.test.ts pour le
+ *     détail complet.
  */
 
 async function creerCabinetAvecSeminaire(nomCabinet: string, titreSeminaire: string) {
@@ -335,6 +352,21 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
     expect(relu.supprimeLe).toBeNull();
   });
 
+  // Étape 14 (publication, lot 5) : le détail (dateLimite, verrouilleLe) est
+  // couvert dans organisateur-questionnaires.test.ts ; un cas ici pour la
+  // cohérence du fichier — publierQuestionnaire ne publie jamais le
+  // questionnaire d'un autre cabinet.
+  it("publierQuestionnaire ne publie jamais un questionnaire d'un autre cabinet", async () => {
+    const cabinetA = await prisma.cabinet.create({ data: { nom: 'Cabinet Isolation Publication A' } });
+    const { cabinet: cabinetB, seminaire: seminaireB } = await creerCabinetAvecSeminaire('Cabinet Isolation Publication B', 'Séminaire B');
+    const questionnaireB = await prisma.questionnaire.create({
+      data: { cabinetId: cabinetB.id, seminaireId: seminaireB.id, titre: 'Évaluation B' },
+    });
+
+    await expect(publierQuestionnaire(cabinetA.id, questionnaireB.id, null)).rejects.toThrow(QuestionnaireIntrouvableError);
+    const relu = await prisma.questionnaire.findUniqueOrThrow({ where: { id: questionnaireB.id } });
+    expect(relu.statut).toBe('BROUILLON');
+  });
 });
 
 afterAll(async () => {

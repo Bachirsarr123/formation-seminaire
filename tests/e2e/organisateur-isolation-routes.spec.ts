@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { Modalite, StatutSeminaire } from '@prisma/client';
+import { Modalite, StatutSeminaire, TypeQuestion } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 
@@ -28,6 +28,18 @@ const ROUTES_ID: { nom: string; chemin: (id: string) => string }[] = [
   { nom: 'import participants', chemin: (id) => `/organisateur/seminaires/${id}/participants/import` },
   { nom: 'QR PNG (diffusion, étape 9)', chemin: (id) => `/organisateur/seminaires/${id}/qr.png` },
   { nom: 'QR SVG (diffusion, étape 9)', chemin: (id) => `/organisateur/seminaires/${id}/qr.svg` },
+  { nom: 'choisir un modèle de questionnaire (étape 13, lot 5)', chemin: (id) => `/organisateur/seminaires/${id}/questionnaire/choisir-modele` },
+];
+
+// Même principe que ROUTES_ID, mais pour les routes clées par l'id d'un
+// QUESTIONNAIRE (pas d'un séminaire) — bibliothèque de modèles et éditeur,
+// lot 5 parties A. Fixture dédiée plus bas : un modèle du cabinet B avec une
+// question, pour que la route "modifier une question" ait aussi un id de
+// question valide à tester.
+const ROUTES_QUESTIONNAIRE_ID: { nom: string; chemin: (questionnaireId: string, questionId: string) => string }[] = [
+  { nom: 'éditeur (étape 12)', chemin: (id) => `/organisateur/questionnaires/${id}` },
+  { nom: 'aperçu (étape 13)', chemin: (id) => `/organisateur/questionnaires/${id}/apercu` },
+  { nom: 'modifier une question (étape 12)', chemin: (id, questionId) => `/organisateur/questionnaires/${id}/questions/${questionId}/modifier` },
 ];
 
 async function connecter(page: import('@playwright/test').Page) {
@@ -75,6 +87,40 @@ test.describe("Isolation par route — un organisateur du cabinet A ne peut jama
       // texte couvre les deux uniformément, et confirme aussi "jamais 403"
       // sans dépendre du rendu exact de chaque cas.
       const reponse = await page.goto(route.chemin(seminaireBId));
+      expect(reponse?.status(), `${route.nom} devrait répondre 404`).toBe(404);
+    });
+  }
+});
+
+test.describe("Isolation par route (questionnaires, lot 5) — un organisateur du cabinet A ne peut jamais atteindre le questionnaire d'un cabinet B", () => {
+  let cabinetBId: string;
+  let questionnaireBId: string;
+  let questionBId: string;
+
+  test.beforeAll(async () => {
+    const cabinetB = await prisma.cabinet.create({ data: { nom: `Cabinet e2e isolation questionnaires ${Date.now()}` } });
+    const modeleB = await prisma.questionnaire.create({
+      data: { cabinetId: cabinetB.id, estModele: true, nom: 'Modèle B (isolation routes)', titre: 'Modèle B' },
+    });
+    const sectionB = await prisma.section.create({ data: { questionnaireId: modeleB.id, titre: 'Section B', ordre: 1 } });
+    const questionB = await prisma.question.create({
+      data: { sectionId: sectionB.id, intitule: 'Question B', type: TypeQuestion.TEXTE_LIBRE, ordre: 1 },
+    });
+    cabinetBId = cabinetB.id;
+    questionnaireBId = modeleB.id;
+    questionBId = questionB.id;
+  });
+
+  test.afterAll(async () => {
+    await prisma.section.deleteMany({ where: { questionnaireId: questionnaireBId } });
+    await prisma.questionnaire.delete({ where: { id: questionnaireBId } });
+    await prisma.cabinet.delete({ where: { id: cabinetBId } });
+  });
+
+  for (const route of ROUTES_QUESTIONNAIRE_ID) {
+    test(`${route.nom} : 404 sur un questionnaire du cabinet B, jamais 403`, async ({ page }) => {
+      await connecter(page);
+      const reponse = await page.goto(route.chemin(questionnaireBId, questionBId));
       expect(reponse?.status(), `${route.nom} devrait répondre 404`).toBe(404);
     });
   }

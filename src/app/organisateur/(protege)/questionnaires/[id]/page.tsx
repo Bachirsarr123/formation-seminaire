@@ -11,6 +11,7 @@ import {
   deplacerQuestionAction,
   deplacerSectionAction,
   dupliquerQuestionnaireAction,
+  publierQuestionnaireAction,
   supprimerQuestionAction,
   supprimerSectionAction,
 } from './actions';
@@ -61,11 +62,35 @@ export default async function PageEditeurQuestionnaire({ params }: Props) {
       </div>
 
       {verrouillage.structureModifiable ? (
-        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-          {verrouillage.verrouilleLe
-            ? "Publié, mais encore modifiable : aucune réponse n'a encore été reçue."
-            : 'Encore modifiable — pas encore publié.'}
-        </p>
+        <div className="flex flex-col gap-3">
+          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
+            {verrouillage.verrouilleLe
+              ? "Publié, mais encore modifiable : aucune réponse n'a encore été reçue."
+              : 'Encore modifiable — pas encore publié.'}
+          </p>
+          {/* Publier n'a de sens que pour le questionnaire d'un séminaire : un
+              modèle n'est jamais atteint directement par un participant
+              (mon-espace/questionnaire cible seminaireId + statut PUBLIE). */}
+          {!questionnaire.estModele && !verrouillage.verrouilleLe ? (
+            <form
+              action={publierQuestionnaireAction.bind(null, questionnaire.id)}
+              className="flex flex-wrap items-end gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4"
+            >
+              <div className="flex flex-col gap-1">
+                <label htmlFor="dateLimite" className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
+                  Date limite (facultative)
+                </label>
+                <input id="dateLimite" type="date" name="dateLimite" />
+              </div>
+              <button
+                type="submit"
+                className="min-h-[44px] rounded-[var(--rayon-sm)] bg-[color:var(--gris-800)] px-4 text-[color:var(--gris-000)]"
+              >
+                Publier
+              </button>
+            </form>
+          ) : null}
+        </div>
       ) : (
         <div className="flex flex-col gap-2 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
           <p className="text-[color:var(--gris-800)]">Structure figée : au moins une réponse a déjà été reçue.</p>
