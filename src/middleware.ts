@@ -82,5 +82,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/p/:path*', '/mon-espace', '/organisateur/:path*'],
+  matcher: ['/p/:path*', '/mon-espace', '/organisateur/:path*', '/r/:path*', '/rc/:path*'],
 };

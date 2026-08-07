@@ -21,6 +21,9 @@ model Cabinet {
   // être publique (ex. affichage "séminaire complet").
   emailContact     String?  @map("email_contact")
   telephoneContact String?  @map("telephone_contact")
+  // Affichée en pied de page du formulaire de recueil et de sa consultation
+  // (lot recueil) — absente ailleurs pour l'instant.
+  adresse          String?  @map("adresse")
   // Secret d'URL du flux d'abonnement agenda (.ics) — distinct de tout jeton
   // participant, régénérable indépendamment (bouton de révocation visible,
   // lib/organisateur/agenda.ts). Nullable : généré à la première demande de
@@ -32,6 +35,7 @@ model Cabinet {
   seminaires     Seminaire[]
   participants   Participant[]
   questionnaires Questionnaire[]
+  recueils       Recueil[]
 
   @@map("cabinet")
 }
@@ -198,6 +202,9 @@ model Seminaire {
   questionnaires   Questionnaire[]
   messagesAnonymes MessageAnonyme[]
   importsEnAttente ImportEnAttente[]
+  // Lot recueil (formulaire de recueil des besoins pré-formation) : table
+  // entièrement séparée du questionnaire d'évaluation, voir plus bas.
+  recueil          Recueil?
 
   @@index([cabinetId])
   @@map("seminaire")
@@ -623,4 +630,96 @@ model MessageAnonyme {
 
   @@index([seminaireId])
   @@map("message_anonyme")
+}
+
+// ============================================================
+// RECUEIL — formulaire de recueil des besoins pré-formation
+//
+// Lot entièrement indépendant du questionnaire d'évaluation (Questionnaire/
+// Section/Question/Soumission/Reponse ci-dessus) : deux tables, deux
+// parcours, jamais de jointure entre les deux. L'évaluation est anonyme
+// (Règle 2, zone cloisonnée) ; le recueil est nominatif par nature — chaque
+// RecueilReponse porte directement nom/prénom, pas de détour par un
+// Participant ni une Inscription. Pas de jeton personnel, pas de session :
+// une soumission est un envoi anonyme-du-point-de-vue-technique (personne ne
+// se réauthentifie jamais pour la relire), simplement identifiée par qui
+// répond.
+// ============================================================
+
+enum TypeRecueilQuestion {
+  TEXTE_LIBRE
+  CHOIX_UNIQUE
+  CHOIX_MULTIPLE
+
+  @@map("type_recueil_question")
+}
+
+// Un seul recueil par séminaire (seminaireId unique) : contrairement au
+// questionnaire d'évaluation, pas de notion de modèle réutilisable ni de
+// verrouillage après réponse — l'organisateur prépare son recueil une fois,
+// avant diffusion. `codeAcces` (lien participant, largement diffusé par
+// WhatsApp/e-mail) et `codeConsultation` (lien formateur, donne accès aux
+// réponses nominatives) sont deux nanoid indépendants : le second n'est
+// JAMAIS dérivable du premier — voir genererCodeAccesRecueil/
+// genererCodeConsultationRecueil (lib/jeton.ts), qui n'ont aucune relation
+// mathématique entre eux au-delà d'utiliser tous deux nanoid.
+model Recueil {
+  id               String   @id @default(uuid())
+  seminaireId      String   @unique @map("seminaire_id")
+  cabinetId        String   @map("cabinet_id")
+  titre            String
+  // Texte d'objectif affiché en tête du formulaire participant.
+  description      String
+  codeAcces        String   @unique @map("code_acces")
+  codeConsultation String   @unique @map("code_consultation")
+  actif            Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  seminaire Seminaire         @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+  cabinet   Cabinet           @relation(fields: [cabinetId], references: [id])
+  questions RecueilQuestion[]
+  reponses  RecueilReponse[]
+
+  @@index([cabinetId])
+  @@map("recueil")
+}
+
+model RecueilQuestion {
+  id        String              @id @default(uuid())
+  recueilId String              @map("recueil_id")
+  intitule  String
+  type      TypeRecueilQuestion
+  // CHOIX_UNIQUE/CHOIX_MULTIPLE : { choix: [{ id, libelle }], avecAutre: bool }
+  // — avecAutre n'a de sens que pour CHOIX_MULTIPLE (voir mockup organisateur).
+  // TEXTE_LIBRE : null.
+  options   Json?
+  ordre     Int
+
+  recueil Recueil @relation(fields: [recueilId], references: [id], onDelete: Cascade)
+
+  @@index([recueilId])
+  @@map("recueil_question")
+}
+
+// Pas de FK vers Participant ni Inscription (volontaire, voir note de section
+// plus haut) : nom/prénom sont des colonnes propres à cette table, pas une
+// référence. onDelete Restrict sur le recueil : une donnée nominative
+// répondue ne doit jamais disparaître silencieusement.
+model RecueilReponse {
+  id           String   @id @default(uuid())
+  recueilId    String   @map("recueil_id")
+  nom          String
+  prenom       String
+  fonction     String?
+  organisation String?
+  // { [questionId]: string | string[] } — chaîne pour TEXTE_LIBRE/CHOIX_UNIQUE,
+  // tableau de chaînes pour CHOIX_MULTIPLE (texte de "Autre" ajouté au tableau
+  // s'il est coché et renseigné).
+  reponses     Json
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  recueil Recueil @relation(fields: [recueilId], references: [id], onDelete: Restrict)
+
+  @@index([recueilId])
+  @@map("recueil_reponse")
 }

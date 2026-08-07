@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { obtenirSeminaire } from '@/lib/organisateur/seminaires';
 import { obtenirQuestionnaireActifDuSeminaire } from '@/lib/organisateur/questionnaires';
+import { obtenirRecueil } from '@/lib/organisateur/recueil';
 import { LIBELLE_MODALITE, LIBELLE_STATUT_QUESTIONNAIRE, LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import {
@@ -140,6 +141,8 @@ export default async function PageFicheSeminaire({ params }: Props) {
 
       {!estFormateur ? <SectionQuestionnaire seminaireId={seminaire.id} cabinetId={contexte.cabinetId} /> : null}
 
+      {!estFormateur ? <SectionRecueil seminaireId={seminaire.id} cabinetId={contexte.cabinetId} /> : null}
+
       {/* "dès que le statut est PUBLIE" : les transitions ne reviennent
           jamais en arrière au-delà de EN_COURS (changerStatutSeminaire), donc
           une fois publié le séminaire reste diffusable pour le reste de son
@@ -178,6 +181,25 @@ async function SectionQuestionnaire({ seminaireId, cabinetId }: { seminaireId: s
           Créer le questionnaire d&apos;évaluation
         </a>
       )}
+    </section>
+  );
+}
+
+// Indépendant de SectionQuestionnaire ci-dessus (lot recueil, table à part) :
+// un séminaire peut avoir un recueil, un questionnaire d'évaluation, les
+// deux, ou aucun — jamais de lien entre eux.
+async function SectionRecueil({ seminaireId, cabinetId }: { seminaireId: string; cabinetId: string }) {
+  const recueil = await obtenirRecueil(cabinetId, seminaireId);
+
+  return (
+    <section>
+      <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Recueil de besoins</h2>
+      <a
+        href={`/organisateur/seminaires/${seminaireId}/recueil`}
+        className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+      >
+        {recueil ? recueil.titre : 'Créer le recueil de besoins'}
+      </a>
     </section>
   );
 }

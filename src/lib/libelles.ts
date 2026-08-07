@@ -5,6 +5,7 @@ import type {
   StatutQuestionnaire,
   StatutSeminaire,
   TypeQuestion,
+  TypeRecueilQuestion,
 } from '@prisma/client';
 
 // Record<Enum, string> plutôt que Record<string, string> : sous
@@ -54,4 +55,10 @@ export const LIBELLE_TYPE_QUESTION: Record<TypeQuestion, string> = {
   TEXTE_LIBRE: 'Texte libre',
   OUI_NON: 'Oui / Non',
   NPS: 'Recommandation (NPS)',
+};
+
+export const LIBELLE_TYPE_RECUEIL_QUESTION: Record<TypeRecueilQuestion, string> = {
+  TEXTE_LIBRE: 'Texte libre',
+  CHOIX_UNIQUE: 'Choix unique',
+  CHOIX_MULTIPLE: 'Choix multiple',
 };
