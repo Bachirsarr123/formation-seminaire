@@ -47,7 +47,10 @@ export async function listerMessagesAnonymes(
   return { visible: true, total, messages: melangerAleatoirement(messages) };
 }
 
-function melangerAleatoirement<T>(items: T[]): T[] {
+// Exporté : réutilisé par lib/questionnaire/resultats.ts (mêmes règles de
+// mélange pour les réponses ouvertes du questionnaire d'évaluation) — un
+// seul générateur, pas une seconde copie qui pourrait diverger.
+export function melangerAleatoirement<T>(items: T[]): T[] {
   const copie = [...items];
   for (let i = copie.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
