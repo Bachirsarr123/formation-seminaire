@@ -10,10 +10,18 @@ import { genererCodeAccesRecueil, genererCodeConsultationRecueil } from '../jeto
  * distinguable d'une ressource inexistante.
  */
 
+// Seul endroit de l'application qui charge les réponses ET l'identité de
+// qui les a données (nom/prénom/fonction/organisation) dans une même
+// requête — la consultation formateur (lib/recueil/consultation.ts) exclut
+// volontairement ces colonnes au niveau du `select`, pas seulement à
+// l'affichage.
 export async function obtenirRecueil(cabinetId: string, seminaireId: string) {
   return prisma.recueil.findFirst({
     where: { seminaireId, cabinetId },
-    include: { questions: { orderBy: { ordre: 'asc' } }, _count: { select: { reponses: true } } },
+    include: {
+      questions: { orderBy: { ordre: 'asc' } },
+      reponses: { orderBy: { createdAt: 'asc' } },
+    },
   });
 }
 

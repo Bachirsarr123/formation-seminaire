@@ -1,5 +1,5 @@
 import { chargerReponsesRecueil } from '@/lib/recueil/consultation';
-import { libelleChoixRecueil } from '@/lib/recueil/options';
+import { libellesReponseRecueil } from '@/lib/recueil/options';
 import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
 
 interface Props {
@@ -35,37 +35,40 @@ export default async function PageConsultationRecueil({ params }: Props) {
           <h2 className="text-[length:var(--taille-sm)] uppercase tracking-wide text-[color:var(--gris-600)]">Réponses</h2>
           {recueil.reponses.map((reponse, index) => {
             const brut = (reponse.reponses ?? {}) as Record<string, string | string[]>;
-            const identite = [reponse.fonction, reponse.organisation].filter(Boolean).join(', ');
 
             return (
               <article key={reponse.id} className="flex flex-col gap-3">
                 <div>
+                  {/* Volontairement sans identité (ni nom, ni fonction, ni
+                      organisation) : le formateur voit ce que les gens
+                      attendent, jamais qui l'a dit — voir
+                      lib/recueil/consultation.ts, qui exclut déjà ces
+                      colonnes de la requête elle-même. */}
                   <p className="text-[length:var(--taille-md)] font-semibold text-[color:var(--gris-900)]">
-                    {reponse.prenom} {reponse.nom}
-                    {identite ? <span className="font-normal text-[color:var(--gris-600)]"> — {identite}</span> : null}
+                    Réponse {index + 1}
                   </p>
                 </div>
 
                 <ol className="flex flex-col gap-3">
                   {recueil.questions.map((question, qIndex) => {
-                    const valeur = brut[question.id];
-                    if (valeur === undefined) return null;
+                    const libelles = libellesReponseRecueil(question, brut[question.id]);
+                    if (libelles.length === 0) return null;
 
                     return (
                       <li key={question.id}>
                         <p className="text-[color:var(--gris-800)]">
                           {qIndex + 1}. {question.intitule}
                         </p>
-                        {Array.isArray(valeur) ? (
+                        {question.type === 'CHOIX_MULTIPLE' ? (
                           <ul className="ml-4 list-disc text-[color:var(--gris-700)]">
-                            {valeur.map((v) => (
-                              <li key={v}>{libelleChoixRecueil(question.options, v)}</li>
+                            {libelles.map((l) => (
+                              <li key={l}>{l}</li>
                             ))}
                           </ul>
                         ) : question.type === 'TEXTE_LIBRE' ? (
-                          <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">« {valeur} »</p>
+                          <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">« {libelles[0]} »</p>
                         ) : (
-                          <p className="text-[color:var(--gris-700)]">{libelleChoixRecueil(question.options, valeur)}</p>
+                          <p className="text-[color:var(--gris-700)]">{libelles[0]}</p>
                         )}
                       </li>
                     );

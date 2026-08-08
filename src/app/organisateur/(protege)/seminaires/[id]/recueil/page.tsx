@@ -5,6 +5,7 @@ import { obtenirSeminaire } from '@/lib/organisateur/seminaires';
 import { obtenirRecueil } from '@/lib/organisateur/recueil';
 import { construireOrigineRequete } from '@/lib/origine-requete';
 import { LIBELLE_TYPE_RECUEIL_QUESTION } from '@/lib/libelles';
+import { libellesReponseRecueil } from '@/lib/recueil/options';
 import { creerRecueilAction } from './actions';
 import { FormulaireCreerRecueil } from './formulaire-creer-recueil';
 import { BoutonCopier } from '../bouton-copier';
@@ -48,7 +49,8 @@ export default async function PageRecueil({ params }: Props) {
   const origine = construireOrigineRequete(enTetes);
   const lienAcces = `${origine}/r/${recueil.codeAcces}`;
   const lienConsultation = `${origine}/rc/${recueil.codeConsultation}`;
-  const nbReponses = recueil._count.reponses;
+  const lienExport = `${origine}/organisateur/seminaires/${id}/recueil/export.xlsx`;
+  const nbReponses = recueil.reponses.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,16 +69,24 @@ export default async function PageRecueil({ params }: Props) {
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-            Lien de consultation à envoyer au formateur — donne accès aux réponses nominatives, à ne pas diffuser au-delà.
+            Lien de consultation à envoyer au formateur — affiche les réponses sans identité (ni nom, ni fonction, ni
+            organisation). Cet écran-ci reste le seul endroit où l&apos;on voit qui a répondu quoi.
           </p>
           <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">{lienConsultation}</p>
           <BoutonCopier valeur={lienConsultation} libelle="Copier le lien de consultation" />
         </div>
       </section>
 
-      <p className="chiffre text-[color:var(--gris-700)]">
-        {nbReponses} réponse{nbReponses > 1 ? 's' : ''} reçue{nbReponses > 1 ? 's' : ''}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="chiffre text-[color:var(--gris-700)]">
+          {nbReponses} réponse{nbReponses > 1 ? 's' : ''} reçue{nbReponses > 1 ? 's' : ''}
+        </p>
+        {nbReponses > 0 ? (
+          <a href={lienExport} className={CLASSE_BOUTON_TEXTE}>
+            Télécharger en Excel
+          </a>
+        ) : null}
+      </div>
 
       <section>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
@@ -97,6 +107,59 @@ export default async function PageRecueil({ params }: Props) {
           </ul>
         )}
       </section>
+
+      {recueil.reponses.length > 0 ? (
+        <section>
+          <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Réponses</h2>
+          {/* Seul endroit de l'application qui affiche à la fois l'identité
+              et les réponses (voir lib/organisateur/recueil.ts) — la
+              consultation formateur (/rc) n'expose jamais nom/fonction/
+              organisation. */}
+          <div className="flex flex-col gap-6">
+            {recueil.reponses.map((reponse, index) => {
+              const brut = (reponse.reponses ?? {}) as Record<string, string | string[]>;
+              const identite = [reponse.fonction, reponse.organisation].filter(Boolean).join(', ');
+
+              return (
+                <article key={reponse.id} className="flex flex-col gap-3">
+                  <p className="text-[length:var(--taille-md)] font-semibold text-[color:var(--gris-900)]">
+                    {reponse.prenom} {reponse.nom}
+                    {identite ? <span className="font-normal text-[color:var(--gris-600)]"> — {identite}</span> : null}
+                  </p>
+
+                  <ol className="flex flex-col gap-3">
+                    {recueil.questions.map((question, qIndex) => {
+                      const libelles = libellesReponseRecueil(question, brut[question.id]);
+                      if (libelles.length === 0) return null;
+
+                      return (
+                        <li key={question.id}>
+                          <p className="text-[color:var(--gris-800)]">
+                            {qIndex + 1}. {question.intitule}
+                          </p>
+                          {question.type === 'CHOIX_MULTIPLE' ? (
+                            <ul className="ml-4 list-disc text-[color:var(--gris-700)]">
+                              {libelles.map((l) => (
+                                <li key={l}>{l}</li>
+                              ))}
+                            </ul>
+                          ) : question.type === 'TEXTE_LIBRE' ? (
+                            <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">« {libelles[0]} »</p>
+                          ) : (
+                            <p className="text-[color:var(--gris-700)]">{libelles[0]}</p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+
+                  {index < recueil.reponses.length - 1 ? <hr className="border-[color:var(--gris-100)]" /> : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

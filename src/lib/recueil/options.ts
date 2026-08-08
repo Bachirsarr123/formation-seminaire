@@ -1,3 +1,5 @@
+import type { TypeRecueilQuestion } from '@prisma/client';
+
 /**
  * Convention de `RecueilQuestion.options` (Json) pour CHOIX_UNIQUE/
  * CHOIX_MULTIPLE — même forme que `question.options.choix` du questionnaire
@@ -33,4 +35,21 @@ export function avecAutreRecueil(options: unknown): boolean {
 export function libelleChoixRecueil(options: unknown, idOuTexte: string): string {
   const trouve = choixRecueil(options).find((c) => c.id === idOuTexte);
   return trouve?.libelle ?? idOuTexte;
+}
+
+/**
+ * Met en forme une valeur brute de RecueilReponse.reponses[questionId] pour
+ * l'affichage — un tableau (une seule entrée pour TEXTE_LIBRE/CHOIX_UNIQUE,
+ * plusieurs pour CHOIX_MULTIPLE) pour que les trois écrans qui affichent des
+ * réponses (consultation formateur, écran organisateur, export Excel) ne
+ * réimplémentent pas chacun la même traduction id → libellé.
+ */
+export function libellesReponseRecueil(
+  question: { type: TypeRecueilQuestion; options: unknown },
+  valeur: string | string[] | undefined,
+): string[] {
+  if (valeur === undefined) return [];
+  if (Array.isArray(valeur)) return valeur.map((v) => libelleChoixRecueil(question.options, v));
+  if (question.type === 'TEXTE_LIBRE') return [valeur];
+  return [libelleChoixRecueil(question.options, valeur)];
 }
