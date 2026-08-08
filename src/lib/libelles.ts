@@ -4,6 +4,7 @@ import type {
   StatutInscription,
   StatutQuestionnaire,
   StatutSeminaire,
+  TypeNotation,
   TypeQuestion,
   TypeRecueilQuestion,
 } from '@prisma/client';
@@ -61,4 +62,11 @@ export const LIBELLE_TYPE_RECUEIL_QUESTION: Record<TypeRecueilQuestion, string> 
   TEXTE_LIBRE: 'Texte libre',
   CHOIX_UNIQUE: 'Choix unique',
   CHOIX_MULTIPLE: 'Choix multiple',
+};
+
+export const LIBELLE_TYPE_NOTATION: Record<TypeNotation, string> = {
+  PRESENCE: 'Présence',
+  PARTICIPATION: 'Participation',
+  TEST: 'Test',
+  APPRECIATION: 'Appréciation',
 };

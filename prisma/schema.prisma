@@ -70,6 +70,9 @@ model Utilisateur {
   // régénération).
   jetonsRegeneres     Inscription[]            @relation("JetonRegenerePar")
   importsEnAttente    ImportEnAttente[]
+  // Notations données EN TANT QUE formateur (lot notation) — un compte
+  // ORGANISATEUR n'apparaît jamais ici, voir Notation.formateur.
+  notationsDonnees    Notation[]               @relation("NotationDonneePar")
 
   @@index([cabinetId])
   @@map("utilisateur")
@@ -331,6 +334,10 @@ model Inscription {
   participant      Participant    @relation(fields: [participantId], references: [id], onDelete: Restrict)
   jetonRegenerePar Utilisateur?   @relation("JetonRegenerePar", fields: [jetonRegenereParId], references: [id], onDelete: SetNull)
   consentements    Consentement[]
+  // Lot notation (formateur) : jamais lu depuis l'espace participant, voir
+  // Notation ci-dessous — cette relation existe pour l'espace organisateur
+  // uniquement.
+  notation         Notation?
   // (Inscription elle-même est une ligne "légère" : la supprimer pour un
   // participant donné ne touche à aucune donnée d'évaluation, cf. plus haut.)
 
@@ -342,6 +349,62 @@ model Inscription {
   @@index([seminaireId])
   @@index([participantId])
   @@map("inscription")
+}
+
+// ============================================================
+// NOTATION FORMATEUR
+//
+// À l'opposé de Soumission/Reponse (Règle 2, zone cloisonnée) : la notation
+// EST rattachée à l'identité (Inscription), c'est son but — le formateur
+// note UNE personne, pas une réponse anonyme. Jamais lue depuis l'espace
+// participant (vérifié par tests/schema/notation-confidentialite.test.ts,
+// qui grep le code participant à la recherche de toute référence).
+// ============================================================
+
+enum TypeNotation {
+  PRESENCE
+  PARTICIPATION
+  TEST
+  APPRECIATION
+
+  @@map("type_notation")
+}
+
+// Une seule notation par inscription (contrainte @unique) : le formateur
+// choisit UN type par personne, pas un score par dimension — noter à
+// nouveau la même inscription REMPLACE la notation existante (upsert),
+// jamais un ajout. `justification` est NOT NULL au niveau Prisma, mais une
+// chaîne vide passerait cette contrainte : une contrainte CHECK
+// (non exprimable dans le DSL Prisma, ajoutée à la main dans le SQL de
+// migration comme participant_contact_requis) interdit aussi une
+// justification blanche. Une deuxième contrainte CHECK garantit la
+// cohérence valeur/barème/type : APPRECIATION n'a ni valeur ni barème, tout
+// autre type a les deux, et la valeur reste dans les bornes du barème.
+model Notation {
+  id            String       @id @default(uuid())
+  inscriptionId String       @unique @map("inscription_id")
+  formateurId   String       @map("formateur_id")
+  typeNotation  TypeNotation @map("type_notation")
+  // null uniquement pour APPRECIATION — voir contrainte CHECK
+  // notation_valeur_coherente (migration).
+  valeur        Float?
+  // ex. 20 pour une note sur 20 ; toujours renseigné avec `valeur`, jamais
+  // seul.
+  bareme        Float?
+  justification String
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  // Restrict (jamais Cascade) sur les deux relations : une notation est une
+  // pièce d'audit ("pourquoi ce collaborateur a eu 11"), elle ne doit jamais
+  // disparaître silencieusement à cause d'une suppression ailleurs — ni
+  // Inscription ni Utilisateur ne sont d'ailleurs jamais supprimés
+  // physiquement dans cette application (suppression logique/désactivation
+  // uniquement).
+  inscription Inscription @relation(fields: [inscriptionId], references: [id], onDelete: Restrict)
+  formateur   Utilisateur @relation("NotationDonneePar", fields: [formateurId], references: [id], onDelete: Restrict)
+
+  @@index([formateurId])
+  @@map("notation")
 }
 
 // Aperçu validé d'un import CSV en masse (lot 4, étape 7), en attente de

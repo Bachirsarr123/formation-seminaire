@@ -57,6 +57,12 @@ export default async function PageFicheSeminaire({ params }: Props) {
           >
             Résultats
           </a>
+          <a
+            href={`/organisateur/seminaires/${seminaire.id}/notations`}
+            className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+          >
+            Notations
+          </a>
           {!estFormateur ? (
             <>
               <a
