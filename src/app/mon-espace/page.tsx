@@ -3,6 +3,7 @@ import { lireJetonSession } from '@/lib/session';
 import { resoudreContexteParticipant } from '@/lib/contexte-participant';
 import { estConsentementActif } from '@/lib/consentement';
 import { calculerPhaseSeminaire } from '@/lib/phase-seminaire';
+import { listerSupportsVisibles } from '@/lib/supports-participant';
 import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-accent';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import { prisma } from '@/lib/prisma';
@@ -55,6 +56,9 @@ export default async function PageMonEspace() {
   ]);
 
   const phase = calculerPhaseSeminaire(contexte.seminaire.dateDebut, contexte.seminaire.dateFin);
+  // Supports visibles seulement PENDANT et APRÈS (contrainte du lot) —
+  // inutile de charger la liste AVANT, où elle ne s'affiche jamais.
+  const supports = phase !== 'AVANT' ? await listerSupportsVisibles(contexte.seminaire.id) : [];
 
   return (
     <main style={style} className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-4 pb-12">
@@ -90,28 +94,28 @@ export default async function PageMonEspace() {
       {phase === 'PENDANT' ? (
         <>
           <ProgrammeSeminaire modules={contexte.seminaire.modules} titreSection="Aujourd'hui" />
-          <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
-            <h2 className="text-[length:var(--taille-md)] mb-1">Supports de formation</h2>
-            <p className="text-[color:var(--gris-600)]">Les supports de ce séminaire seront mis à votre disposition ici.</p>
-          </section>
+          <SectionSupports supports={supports} />
         </>
       ) : null}
 
       {phase === 'APRES' ? (
-        <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
-          <h2 className="text-[length:var(--taille-md)] mb-1">Votre avis nous intéresse</h2>
-          <p className="text-[color:var(--gris-600)] mb-3">
-            {contexte.inscription.aRepondu
-              ? "Merci d'avoir répondu à notre questionnaire d'évaluation."
-              : 'Aidez-nous à améliorer ce séminaire en répondant au questionnaire.'}
-          </p>
-          <a
-            href="/mon-espace/questionnaire"
-            className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--couleur-accent)] px-4 text-[color:var(--couleur-accent-contraste)]"
-          >
-            {contexte.inscription.aRepondu ? 'Voir mon évaluation' : 'Répondre au questionnaire'}
-          </a>
-        </section>
+        <>
+          <SectionSupports supports={supports} />
+          <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+            <h2 className="text-[length:var(--taille-md)] mb-1">Votre avis nous intéresse</h2>
+            <p className="text-[color:var(--gris-600)] mb-3">
+              {contexte.inscription.aRepondu
+                ? "Merci d'avoir répondu à notre questionnaire d'évaluation."
+                : 'Aidez-nous à améliorer ce séminaire en répondant au questionnaire.'}
+            </p>
+            <a
+              href="/mon-espace/questionnaire"
+              className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--couleur-accent)] px-4 text-[color:var(--couleur-accent-contraste)]"
+            >
+              {contexte.inscription.aRepondu ? 'Voir mon évaluation' : 'Répondre au questionnaire'}
+            </a>
+          </section>
+        </>
       ) : null}
 
       <section aria-label="Vos préférences" className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
@@ -150,6 +154,39 @@ export default async function PageMonEspace() {
         </section>
       ) : null}
     </main>
+  );
+}
+
+function formaterTaille(octets: number): string {
+  if (octets < 1024) return `${octets} o`;
+  if (octets < 1024 * 1024) return `${Math.round(octets / 1024)} Ko`;
+  return `${(octets / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+function SectionSupports({ supports }: { supports: { id: string; titre: string; tailleFichier: number }[] }) {
+  return (
+    <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+      <h2 className="text-[length:var(--taille-md)] mb-1">Supports de formation</h2>
+      {supports.length === 0 ? (
+        <p className="text-[color:var(--gris-600)]">Les supports de ce séminaire seront mis à votre disposition ici.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {supports.map((support) => (
+            <li key={support.id}>
+              <a
+                href={`/mon-espace/supports/${support.id}/fichier`}
+                className="flex min-h-[44px] items-center justify-between gap-2 rounded-[var(--rayon-sm)] bg-[color:var(--gris-000)] px-3 text-[color:var(--gris-900)]"
+              >
+                <span className="break-words">{support.titre}</span>
+                <span className="chiffre shrink-0 text-[length:var(--taille-sm)] text-[color:var(--gris-500)]">
+                  {formaterTaille(support.tailleFichier)}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

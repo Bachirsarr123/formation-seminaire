@@ -66,6 +66,12 @@ export default async function PageFicheSeminaire({ params }: Props) {
           {!estFormateur ? (
             <>
               <a
+                href={`/organisateur/seminaires/${seminaire.id}/supports`}
+                className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
+              >
+                Supports
+              </a>
+              <a
                 href={`/organisateur/seminaires/${seminaire.id}/modifier`}
                 className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[color:var(--gris-800)]"
               >

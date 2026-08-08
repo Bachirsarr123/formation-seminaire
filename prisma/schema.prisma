@@ -208,6 +208,7 @@ model Seminaire {
   // Lot recueil (formulaire de recueil des besoins pré-formation) : table
   // entièrement séparée du questionnaire d'évaluation, voir plus bas.
   recueil          Recueil?
+  supportsCours    SupportCours[]
 
   @@index([cabinetId])
   @@map("seminaire")
@@ -228,6 +229,40 @@ model Module {
 
   @@index([seminaireId])
   @@map("module")
+}
+
+// Même structure que Module (pas de cabinetId propre — l'isolation par
+// cabinet passe par seminaire.cabinetId, comme partout dans
+// lib/organisateur/) : un support de cours appartient à un séminaire, pas
+// directement à un cabinet.
+//
+// `urlStockage` : pour l'adaptateur de stockage local (le seul implémenté
+// pour ce lot, voir lib/organisateur/stockage-supports.ts), c'est le chemin
+// relatif du fichier sur le disque du conteneur — PAS une URL publique. Si
+// un adaptateur S3 est branché plus tard, ce même champ portera l'URL/la clé
+// de l'objet distant ; la forme change selon l'adaptateur, jamais le nom du
+// champ ni son rôle (localiser le fichier physique).
+model SupportCours {
+  id                  String    @id @default(uuid())
+  seminaireId         String    @map("seminaire_id")
+  titre               String
+  nomFichier          String    @map("nom_fichier")
+  // en octets — voir PLAFOND_TAILLE_SUPPORT_OCTETS (10 Mo).
+  tailleFichier       Int       @map("taille_fichier")
+  typeMime            String    @map("type_mime")
+  urlStockage         String    @map("url_stockage")
+  visibleParticipants Boolean   @default(true) @map("visible_participants")
+  ordre               Int
+  createdAt           DateTime  @default(now()) @map("created_at")
+  // Suppression logique, jamais physique (contrainte du lot) — le fichier
+  // sur disque n'est pas non plus effacé : filet de sécurité en cas de
+  // suppression accidentelle, coût négligeable à l'échelle de ce lot.
+  supprimeLe          DateTime? @map("supprime_le")
+
+  seminaire Seminaire @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
+
+  @@index([seminaireId])
+  @@map("support_cours")
 }
 
 enum RoleFormateur {

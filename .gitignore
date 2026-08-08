@@ -18,3 +18,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Stockage local des supports de cours (lib/organisateur/stockage-supports.ts)
+# — fichiers uploadés par les organisateurs, jamais du code projet.
+/uploads/

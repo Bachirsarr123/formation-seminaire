@@ -150,3 +150,33 @@ situation dont on ne peut plus revenir que par un accès direct à la base
 perdu. Non traité volontairement : le prompt ne demandait que la
 désactivation, pas la protection du dernier compte actif — à réévaluer si ce
 scénario se présente réellement en usage.
+
+## ⚠️ Stockage des supports de cours : disque local, perdu à chaque redéploiement sur le plan gratuit Render
+
+`lib/organisateur/stockage-supports.ts` écrit les fichiers téléversés
+(`/organisateur/seminaires/[id]/supports`) dans un dossier `uploads/` à la
+racine du conteneur — aucun service de stockage externe (S3 ou équivalent)
+n'est configuré pour ce lot, conformément à la consigne ("si aucun service
+n'est configuré, les fichiers sont stockés localement... fonctionnel pour la
+démo").
+
+**Le plan gratuit Render n'offre pas de disque persistant** : ce dossier vit
+dans le système de fichiers éphémère du conteneur. Les fichiers survivent
+aux redémarrages normaux du même conteneur, mais **sont perdus à chaque
+nouveau déploiement** (`git push`, changement de configuration...) — la ligne
+`SupportCours` reste en base (donc visible dans la liste), mais son
+téléchargement échouera (fichier introuvable sur le nouveau conteneur).
+
+**Non corrigé volontairement** dans ce lot : corriger nécessiterait soit un
+disque persistant Render (plan payant), soit un adaptateur S3 (ou
+compatible) — les deux sont hors budget/temps de ce lot, et le prompt
+autorisait explicitement le repli local avec cet avertissement. L'adaptateur
+est isolé (`stockage-supports.ts`, deux fonctions : `enregistrerFichierSupport`/
+`lireFichierSupport`) pour qu'un futur remplacement par S3 ne touche aucun
+appelant.
+
+**À faire avant un usage réel en production** : brancher un disque
+persistant Render sur `uploads/`, ou écrire un adaptateur S3 derrière la même
+interface — et prévenir les organisateurs que les supports actuellement
+téléversés devront être re-téléversés une fois la bascule faite (les lignes
+`SupportCours` déjà en base ne pointeront plus vers un fichier existant).
