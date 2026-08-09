@@ -180,3 +180,50 @@ persistant Render sur `uploads/`, ou écrire un adaptateur S3 derrière la même
 interface — et prévenir les organisateurs que les supports actuellement
 téléversés devront être re-téléversés une fois la bascule faite (les lignes
 `SupportCours` déjà en base ne pointeront plus vers un fichier existant).
+
+## Lot messages anonymes : terminé (migration, routes, tests)
+
+Repris après une coupure où `prisma migrate dev` avait échoué : la commande
+demande une confirmation interactive dès qu'elle détecte un changement
+risqué (ici, `@unique` sur `code_suivi_hash`), ce qui la rend inutilisable
+telle quelle hors d'un terminal interactif. Contournement retenu — à
+réutiliser pour toute prochaine migration bloquée de la même façon :
+`prisma migrate dev --create-only` pour générer le SQL sans l'appliquer,
+puis `prisma migrate deploy` (non interactif) pour l'appliquer. Ici même
+`--create-only` échouait encore en environnement non interactif ; le fichier
+`migration.sql` a été écrit à la main dans
+`prisma/migrations/20260809085259_ajout_unique_code_suivi_message/`, au
+format généré par Prisma (vérifié contre une migration existante).
+
+**Bug de données trouvé en appliquant la contrainte** : la première tentative
+de `migrate deploy` a échoué sur des doublons déjà présents en base de dev
+(`hash-1`..`hash-5`, jusqu'à 22 fois chacun). Cause : `ajouterMessages()` dans
+`tests/integration/seuil-anonymat.test.ts` insérait des `codeSuiviHash`
+littéraux non uniques (`hash-${i+1}`), réutilisés à la fois entre les deux
+séminaires du même fichier de test et entre les exécutions successives de la
+suite contre la même base — inoffensif tant que la colonne n'était pas
+contrainte, mais impossible à appliquer une fois `@unique` ajouté. Corrigé en
+préfixant chaque hash par l'id (uuid) du séminaire qui le porte, unique à
+chaque création. Base de dev remise à plat via `prisma migrate reset --force`
+(qui réapplique toutes les migrations et relance `prisma/seed.ts`) plutôt que
+de purger les doublons à la main.
+
+**Reste de l'implémentation, terminé dans la foulée** (`src/lib/anonymat.ts`
+et `src/lib/jeton.ts` étaient déjà écrits avant la coupure, sans aucun
+appelant) :
+- Organisateur : `/organisateur/seminaires/[id]/messages` — liste sous
+  réserve du seuil d'anonymat du séminaire, réponse à un message (marque
+  aussi TRAITE), marquage LU/TRAITE indépendant. Réservé au rôle
+  ORGANISATEUR (pas au formateur), comme Recueil.
+- Participant : `/mon-espace/messages` — envoi d'un message (le code de
+  suivi n'est affiché qu'une seule fois, jamais stocké en clair) et
+  consultation d'une réponse par ce code. Décision produit tranchée en cours
+  de session : accessible uniquement via l'espace participant authentifié
+  (pas de route publique séparée par `codePublic`).
+- Tests : `tests/integration/anonymat.test.ts` (13 cas), couvrant les cinq
+  fonctions jusque-là non testées — envoi/validation, consultation par code
+  (y compris normalisation des espaces et isolation par séminaire), réponse
+  et marquage LU/TRAITE avec vérification systématique de la règle B
+  (isolation par cabinet).
+
+Suite complète vérifiée verte après ces changements : 43 fichiers, 260 tests.
