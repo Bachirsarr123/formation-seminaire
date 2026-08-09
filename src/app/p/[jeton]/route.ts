@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { resoudreContexteParticipant } from '@/lib/contexte-participant';
 import { poserCookieSession } from '@/lib/session';
+import { construireOrigineRequete } from '@/lib/origine-requete';
 
 interface Props {
   params: Promise<{ jeton: string }>;
@@ -27,5 +29,14 @@ export async function GET(request: Request, { params }: Props) {
 
   await poserCookieSession(jeton, contexte.seminaire.dateFin);
 
-  return NextResponse.redirect(new URL('/mon-espace', request.url));
+  // `request.url` ne doit JAMAIS servir de base ici : derrière le proxy
+  // Render, il reflète l'URL interne que Next.js s'est construite (observé
+  // en production : `http://localhost:PORT/...`), pas l'origine publique
+  // réellement visitée — même piège que celui documenté dans
+  // lib/origine-requete.ts pour les liens/QR codes, cette fois sur une
+  // redirection plutôt qu'un lien affiché.
+  const enTetes = await headers();
+  const origine = construireOrigineRequete(enTetes);
+
+  return NextResponse.redirect(new URL('/mon-espace', origine));
 }
