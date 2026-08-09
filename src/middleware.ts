@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { DUREE_SESSION_MS, NOM_COOKIE_SESSION } from './lib/organisateur/cookie-session';
 
 /**
- * Se limite à l'en-tête Referrer-Policy, sur /p/*, /mon-espace ET
+ * Se limite à l'en-tête Referrer-Policy, sur /p/*, /mon-espace, /f/* ET
  * /organisateur/*. La résolution du jeton/cookie se fait dans les routes
  * elles-mêmes (route.ts, page.tsx), en runtime Node.js — seul environnement
  * où Prisma/PostgreSQL fonctionne. Le Middleware Next.js tourne par défaut
@@ -82,5 +82,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/p/:path*', '/mon-espace', '/organisateur/:path*', '/r/:path*', '/rc/:path*'],
+  matcher: ['/p/:path*', '/mon-espace', '/organisateur/:path*', '/r/:path*', '/rc/:path*', '/f/:path*'],
 };

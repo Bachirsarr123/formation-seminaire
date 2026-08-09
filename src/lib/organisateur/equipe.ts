@@ -63,8 +63,9 @@ export async function listerEquipe(cabinetId: string): Promise<MembreEquipe[]> {
 /**
  * Toujours FORMATEUR, jamais ORGANISATEUR : aucun écran de cet écran ne
  * crée de compte avec mot de passe (motDePasseHash reste null) — un
- * formateur se connecte exclusivement par lien magique, mécanisme déjà en
- * place (lib/organisateur/lien-magique-formateur.ts).
+ * formateur ne se connecte jamais ; son seul accès est le lien direct
+ * /f/{codeFormateur} généré par séminaire (lib/organisateur/seminaires.ts,
+ * lib/formateur-lien.ts), pas un compte au sens propre.
  */
 export async function creerFormateur(cabinetId: string, donnees: DonneesFormateur): Promise<Utilisateur> {
   try {

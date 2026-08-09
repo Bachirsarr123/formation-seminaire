@@ -227,3 +227,53 @@ appelant) :
   (isolation par cabinet).
 
 Suite complète vérifiée verte après ces changements : 43 fichiers, 260 tests.
+
+## Lien direct formateur (/f/{codeFormateur}) — remplace la connexion par lien magique
+
+Le formateur ne se connecte plus jamais (ni mot de passe, ni lien magique par
+e-mail) : `/f/{codeFormateur}` donne accès à tout ce qui concerne un
+séminaire précis pour un formateur précis — fiche séminaire, participants
+confirmés (nom/prénom/fonction/organisation), réponses du recueil de besoins
+(anonymisées, même règle que `/rc/{codeConsultation}`), résultats
+d'évaluation (soumis au seuil d'anonymat), et notation des participants
+(`/f/{codeFormateur}/notations`). Un code par paire (séminaire, formateur),
+colonne `codeFormateur` (`@unique`) sur `SeminaireFormateur`, régénérable
+depuis la fiche séminaire organisateur (l'ancien lien cesse aussitôt de
+fonctionner).
+
+**Supprimé entièrement** : `/organisateur/connexion/formateur/*`,
+`lib/organisateur/lien-magique-formateur.ts`,
+`tests/integration/organisateur-lien-magique.test.ts`, la valeur d'enum
+`CONNEXION_FORMATEUR` (`TypeJetonAction`, migration
+`20260809102719_lien_formateur_direct` — recrée le type enum, Postgres ne
+permettant pas de retirer une valeur directement), et
+`envoyerLienMagiqueFormateur` (lib/notification.ts). Trois specs e2e testaient
+exclusivement ce mécanisme de connexion (`organisateur-connexion.spec.ts`,
+`organisateur-seminaire-crud.spec.ts`, `organisateur-seminaires.spec.ts`) —
+retirées plutôt qu'adaptées, leur prémisse (un formateur peut avoir une
+session `/organisateur`) n'existe plus.
+
+**Réutilisation délibérée, pas de duplication** : `lib/organisateur/notations.ts`
+et `lib/organisateur/resultats.ts` acceptent un `ContexteOrganisateur`
+(`{utilisateurId, cabinetId, role}`) en paramètre — ils ne savent pas d'où il
+vient. `/f/{codeFormateur}` construit ce contexte à la main
+(`role: 'FORMATEUR'`) à partir du `SeminaireFormateur` résolu par le code,
+sans toucher à ces deux fichiers : la vérification d'affectation
+(`SeminaireFormateur.findFirst`) qui s'y trouve déjà s'applique donc
+correctement, qu'elle vienne d'une vraie session organisateur ou de ce
+contexte reconstruit. `FormulaireNotation`, `BarreDistribution`,
+`ListeReponsesOuvertes` et le rendu des résultats anonymisés
+(`ResultatsSeminaire`) ont été déplacés vers `src/components/` pour être
+partagés à l'identique entre l'espace organisateur et `/f/`.
+
+**Ce qui reste ouvert** : les branches `contexte.role === 'FORMATEUR'` dans
+les pages sous `/organisateur/(protege)/*` (fiche séminaire, notations,
+résultats, participants, liste des séminaires, agenda, formulaires de
+création/édition) n'ont pas été retirées — elles deviennent inatteignables en
+pratique (`exigerContexteOrganisateur()` ne peut plus jamais résoudre une
+session `role: FORMATEUR`, le seul chemin qui en créait une était le lien
+magique désormais supprimé), mais les laisser en l'état évite un remaniement
+plus large que ce que ce lot demandait. `RoleUtilisateur.FORMATEUR` reste
+utilisé sans changement pour l'affectation (qui peut être formateur sur un
+séminaire) et l'équipe (`/organisateur/equipe`), ce qui est toujours
+nécessaire. À nettoyer dans un lot dédié si cette zone est retouchée.

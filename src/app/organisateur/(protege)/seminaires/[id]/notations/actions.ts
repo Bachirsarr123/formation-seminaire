@@ -3,20 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import type { TypeNotation } from '@prisma/client';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
-import { enregistrerNotation } from '@/lib/organisateur/notations';
-
-export interface EtatNotation {
-  erreur?: string;
-}
-
-const TYPES_VALIDES: TypeNotation[] = ['PRESENCE', 'PARTICIPATION', 'TEST', 'APPRECIATION'];
-
-function lireNombre(formData: FormData, champ: string): number | null {
-  const brut = String(formData.get(champ) ?? '').trim();
-  if (brut === '') return null;
-  const valeur = Number(brut);
-  return Number.isFinite(valeur) ? valeur : null;
-}
+import { enregistrerNotation, lireValeurNotation, TYPES_NOTATION_VALIDES } from '@/lib/organisateur/notations';
+import type { EtatNotation } from '@/components/formulaire-notation';
 
 // exigerContexteOrganisateur() sans restriction de rôle : c'est
 // enregistrerNotation qui refuse un organisateur (contrainte du lot — seul
@@ -32,12 +20,12 @@ export async function enregistrerNotationAction(
   const contexte = await exigerContexteOrganisateur();
 
   const typeBrut = String(formData.get('typeNotation') ?? '');
-  if (!TYPES_VALIDES.includes(typeBrut as TypeNotation)) return { erreur: 'Type de notation invalide.' };
+  if (!TYPES_NOTATION_VALIDES.includes(typeBrut as TypeNotation)) return { erreur: 'Type de notation invalide.' };
 
   const resultat = await enregistrerNotation(contexte.cabinetId, seminaireId, inscriptionId, contexte, {
     typeNotation: typeBrut as TypeNotation,
-    valeur: lireNombre(formData, 'valeur'),
-    bareme: lireNombre(formData, 'bareme'),
+    valeur: lireValeurNotation(formData, 'valeur'),
+    bareme: lireValeurNotation(formData, 'bareme'),
     justification: String(formData.get('justification') ?? ''),
   });
 

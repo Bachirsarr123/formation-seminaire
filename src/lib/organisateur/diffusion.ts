@@ -23,6 +23,10 @@ export function construireLienPublicSeminaire(origine: string, codePublic: strin
   return `${origine}/s/${codePublic}`;
 }
 
+export function construireLienFormateur(origine: string, codeFormateur: string): string {
+  return `${origine}/f/${codeFormateur}`;
+}
+
 // Petit format, intégré directement dans la fiche séminaire (pas de
 // téléchargement) — mêmes réglages ECC/marge/contraste que les
 // téléchargements pour rester cohérent visuellement.

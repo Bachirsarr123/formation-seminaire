@@ -14,9 +14,6 @@ export default async function PageConnexion() {
         <a href="/organisateur/connexion/mot-de-passe-oublie" className="text-[color:var(--couleur-accent-texte)] underline">
           Mot de passe oublié ?
         </a>
-        <a href="/organisateur/connexion/formateur" className="text-[color:var(--couleur-accent-texte)] underline">
-          Vous êtes formateur ? Recevoir un lien de connexion
-        </a>
       </div>
     </main>
   );

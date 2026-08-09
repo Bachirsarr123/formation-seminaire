@@ -23,6 +23,14 @@ export function genererCodeConsultationRecueil(): string {
   return nanoid(21);
 }
 
+// Lien direct formateur (/f/{codeFormateur}) : secret permanent par paire
+// (séminaire, formateur), même registre que codeConsultationRecueil — quiconque
+// le possède a accès en lecture (et notation) à tout ce qui concerne ce
+// séminaire pour ce formateur, sans compte ni session.
+export function genererCodeFormateur(): string {
+  return nanoid(21);
+}
+
 // Code de suivi d'un message anonyme (lot messages) : contrairement aux
 // jetons ci-dessus, celui-ci est SAISI À LA MAIN par un participant qui
 // revient consulter une réponse — 12 caractères (alphabet nanoid par défaut,

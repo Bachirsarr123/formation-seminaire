@@ -1,7 +1,7 @@
 import 'server-only';
 import { Modalite, Prisma, RoleFormateur, StatutSeminaire } from '@prisma/client';
 import { prisma } from '../prisma';
-import { genererCodePublicSeminaire } from '../jeton';
+import { genererCodeFormateur, genererCodePublicSeminaire } from '../jeton';
 
 export interface FiltresSeminaires {
   statut?: StatutSeminaire;
@@ -210,7 +210,10 @@ export async function obtenirSeminaire(cabinetId: string, seminaireId: string) {
     where: { id: seminaireId, cabinetId, supprimeLe: null },
     include: {
       modules: { orderBy: { ordre: 'asc' } },
-      formateurs: { include: { utilisateur: { select: { id: true, nom: true, prenom: true } } } },
+      formateurs: {
+        include: { utilisateur: { select: { id: true, nom: true, prenom: true } } },
+        orderBy: { utilisateur: { nom: 'asc' } },
+      },
     },
   });
 }
@@ -235,7 +238,7 @@ export async function creerSeminaire(cabinetId: string, donnees: DonneesSeminair
       seuilAnonymat: donnees.seuilAnonymat,
       statut: StatutSeminaire.BROUILLON,
       modules: { create: donnees.modules },
-      formateurs: { create: donnees.formateurs },
+      formateurs: { create: donnees.formateurs.map((f) => ({ ...f, codeFormateur: genererCodeFormateur() })) },
     },
   });
 }
@@ -245,6 +248,14 @@ export async function creerSeminaire(cabinetId: string, donnees: DonneesSeminair
  * fusion différentielle) : plus simple, et sans effet observable pour ce
  * lot — aucune donnée ne référence encore un module par son id (l'éditeur de
  * questionnaire, qui le fera, vient dans un lot dédié).
+ *
+ * `codeFormateur` fait exception à ce remplacement systématique : un
+ * formateur qui reste affecté conserve son lien /f/{code} à travers une
+ * édition (changer le titre ou les dates ne doit jamais invalider
+ * silencieusement un lien déjà distribué) — seuls les formateurs nouvellement
+ * ajoutés reçoivent un code neuf. Régénérer un code volontairement est une
+ * action séparée (regenererCodeFormateur), déclenchée explicitement par
+ * l'organisateur.
  */
 export async function modifierSeminaire(cabinetId: string, seminaireId: string, donnees: DonneesSeminaire) {
   const existant = await prisma.seminaire.findFirst({ where: { id: seminaireId, cabinetId, supprimeLe: null } });
@@ -261,6 +272,12 @@ export async function modifierSeminaire(cabinetId: string, seminaireId: string, 
 
   return prisma.$transaction(async (tx) => {
     await tx.module.deleteMany({ where: { seminaireId } });
+
+    const formateursExistants = await tx.seminaireFormateur.findMany({
+      where: { seminaireId },
+      select: { utilisateurId: true, codeFormateur: true },
+    });
+    const codeExistantParUtilisateur = new Map(formateursExistants.map((f) => [f.utilisateurId, f.codeFormateur]));
     await tx.seminaireFormateur.deleteMany({ where: { seminaireId } });
 
     return tx.seminaire.update({
@@ -278,10 +295,41 @@ export async function modifierSeminaire(cabinetId: string, seminaireId: string, 
         validationRequise: donnees.validationRequise,
         seuilAnonymat: donnees.seuilAnonymat,
         modules: { create: donnees.modules },
-        formateurs: { create: donnees.formateurs },
+        formateurs: {
+          create: donnees.formateurs.map((f) => ({
+            ...f,
+            codeFormateur: codeExistantParUtilisateur.get(f.utilisateurId) ?? genererCodeFormateur(),
+          })),
+        },
       },
     });
   });
+}
+
+/**
+ * Régénère le lien /f/{codeFormateur} d'une paire (séminaire, formateur) —
+ * l'ancien cesse aussitôt de fonctionner (contrainte @unique, remplacé
+ * atomiquement). `null` si le séminaire n'existe pas dans ce cabinet ou si ce
+ * formateur n'y est pas affecté, jamais distingué d'une ressource
+ * inexistante (règle B).
+ */
+export async function regenererCodeFormateur(
+  cabinetId: string,
+  seminaireId: string,
+  utilisateurId: string,
+): Promise<string | null> {
+  const seminaire = await prisma.seminaire.findFirst({
+    where: { id: seminaireId, cabinetId, supprimeLe: null },
+    select: { id: true },
+  });
+  if (!seminaire) return null;
+
+  const nouveauCode = genererCodeFormateur();
+  const resultat = await prisma.seminaireFormateur.updateMany({
+    where: { seminaireId, utilisateurId },
+    data: { codeFormateur: nouveauCode },
+  });
+  return resultat.count > 0 ? nouveauCode : null;
 }
 
 export async function changerStatutSeminaire(
@@ -361,6 +409,9 @@ export async function dupliquerSeminaire(cabinetId: string, seminaireId: string)
         create: original.formateurs.map((f) => ({
           utilisateurId: f.utilisateurId,
           roleFormateur: f.roleFormateur,
+          // Jamais le code de l'original : une copie est un nouveau séminaire,
+          // le lien /f/ de l'original ne doit pas donner accès à la copie.
+          codeFormateur: genererCodeFormateur(),
         })),
       },
     },

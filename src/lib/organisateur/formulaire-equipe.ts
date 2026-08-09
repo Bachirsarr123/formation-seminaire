@@ -14,10 +14,10 @@ const FORMAT_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Validation pure (aucun accès DB, testable sans base — même philosophie que
  * formulaire-seminaire.ts/formulaire-participant.ts). Contrairement au
- * participant, l'email est ici obligatoire : un formateur n'a pas de mot de
- * passe et se connecte uniquement par lien magique envoyé à cette adresse
- * (lib/organisateur/lien-magique-formateur.ts) — sans email, le compte créé
- * serait inutilisable.
+ * participant, l'email est ici obligatoire : un formateur ne se connecte
+ * jamais (son accès est le lien direct /f/{codeFormateur} par séminaire, voir
+ * lib/formateur-lien.ts) mais reste identifié par son adresse, seul moyen de
+ * le contacter hors de la plateforme.
  */
 export function analyserFormulaireFormateur(formData: FormData): ResultatAnalyseFormulaireFormateur {
   const nom = normaliserNom(String(formData.get('nom') ?? ''));
@@ -26,7 +26,7 @@ export function analyserFormulaireFormateur(formData: FormData): ResultatAnalyse
 
   const email = normaliserEmail(String(formData.get('email') ?? ''));
   if (!email || !FORMAT_EMAIL.test(email)) {
-    return { erreur: "Un e-mail valide est obligatoire : c'est la seule façon pour ce formateur de se connecter." };
+    return { erreur: 'Un e-mail valide est obligatoire pour identifier ce formateur.' };
   }
 
   return { donnees: { nom, prenom, email } };

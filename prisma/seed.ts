@@ -9,7 +9,7 @@ import {
 } from '@prisma/client';
 import { verifierEnvironnementDev } from '../src/lib/garde-environnement-dev';
 import { annulerInscription, inscrireParticipant } from '../src/lib/inscription';
-import { genererCodePublicSeminaire } from '../src/lib/jeton';
+import { genererCodeFormateur, genererCodePublicSeminaire } from '../src/lib/jeton';
 import { soumettreReponses } from '../src/lib/soumission';
 import { copierModeleVersSeminaire } from '../src/lib/questionnaire/copier-modele';
 import { creerModeleEvaluationParDefaut } from '../src/lib/questionnaire/modele-defaut';
@@ -163,7 +163,7 @@ async function main() {
   // Un formateur ne voit que ses propres séminaires (lot 4) — au moins deux
   // affectations pour que ce filtre soit vérifiable, avec des rôles distincts.
   await prisma.seminaireFormateur.create({
-    data: { seminaireId: seminaireMicro.id, utilisateurId: formateurIssa.id, roleFormateur: 'INTERVENANT' },
+    data: { seminaireId: seminaireMicro.id, utilisateurId: formateurIssa.id, roleFormateur: 'INTERVENANT', codeFormateur: genererCodeFormateur() },
   });
 
   // ==================================================================
@@ -188,7 +188,7 @@ async function main() {
     },
   });
   await prisma.seminaireFormateur.create({
-    data: { seminaireId: seminaireGrand.id, utilisateurId: formateurIssa.id, roleFormateur: 'PRINCIPAL' },
+    data: { seminaireId: seminaireGrand.id, utilisateurId: formateurIssa.id, roleFormateur: 'PRINCIPAL', codeFormateur: genererCodeFormateur() },
   });
 
   const { questionnaire: qGrand, questionSatisfaction: qSatGrand, questionLibre: qLibreGrand } =

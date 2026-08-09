@@ -23,7 +23,7 @@ import {
   creerModele,
   publierQuestionnaire,
 } from '../../src/lib/organisateur/questionnaires';
-import { genererCodePublicSeminaire } from '../../src/lib/jeton';
+import { genererCodeFormateur, genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 /**
  * Règle B du lot 4 (la plus importante) : toute fonction de lib/organisateur/
@@ -202,7 +202,7 @@ describe('Isolation par cabinet — lib/organisateur/', () => {
       },
     });
     await prisma.seminaireFormateur.create({
-      data: { seminaireId: seminaireAffecte.id, utilisateurId: formateur.id, roleFormateur: 'INTERVENANT' },
+      data: { seminaireId: seminaireAffecte.id, utilisateurId: formateur.id, roleFormateur: 'INTERVENANT', codeFormateur: genererCodeFormateur() },
     });
 
     const { items } = await listerSeminaires(cabinet.id, { formateurId: formateur.id }, { page: 1 });

@@ -1,13 +1,8 @@
-import { createHash, randomBytes } from 'node:crypto';
 import { test, expect } from '@playwright/test';
-import { Modalite, StatutSeminaire, TypeJetonAction } from '@prisma/client';
+import { Modalite, StatutSeminaire } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 import { supprimerCabinetCompletement } from './creer-fixtures';
-
-function hacherJeton(jeton: string): string {
-  return createHash('sha256').update(jeton).digest('hex');
-}
 
 const EMAIL_ORGANISATRICE = 'organisatrice@meridien-formation.test';
 const MOT_DE_PASSE = 'ChangeMe!2026-demo-seed';
@@ -77,25 +72,6 @@ test('création, édition, duplication et cycle de statut d\'un séminaire', asy
   // Vérifie aussi côté base que ce n'est pas une suppression physique.
   const enBase = await prisma.seminaire.findUniqueOrThrow({ where: { id: seminaireId } });
   expect(enBase.supprimeLe).not.toBeNull();
-});
-
-test("un formateur (lecture seule) ne peut pas créer ni modifier un séminaire", async ({ page }) => {
-  const formateur = await prisma.utilisateur.findFirstOrThrow({ where: { email: 'formateur@meridien-formation.test' } });
-  const jeton = randomBytes(32).toString('base64url');
-  await prisma.jetonActionUtilisateur.create({
-    data: {
-      utilisateurId: formateur.id,
-      type: TypeJetonAction.CONNEXION_FORMATEUR,
-      tokenHash: hacherJeton(jeton),
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-    },
-  });
-  await page.goto(`/organisateur/connexion/formateur/${jeton}`);
-  await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-  await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
-
-  await page.goto('/organisateur/seminaires/nouveau');
-  await expect(page.getByRole('heading', { name: "Vous n'avez pas les droits nécessaires" })).toBeVisible();
 });
 
 test("un organisateur du cabinet A obtient un 404 sur la fiche d'un séminaire du cabinet B", async ({ page }) => {

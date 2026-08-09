@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { obtenirNotationsSeminaire } from '@/lib/organisateur/notations';
 import { LIBELLE_TYPE_NOTATION } from '@/lib/libelles';
+import { FormulaireNotation } from '@/components/formulaire-notation';
 import { enregistrerNotationAction } from './actions';
-import { FormulaireNotation } from './formulaire-notation';
 
 interface Props {
   params: Promise<{ id: string }>;

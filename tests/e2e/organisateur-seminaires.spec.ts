@@ -1,11 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
 import { test, expect } from '@playwright/test';
-import { TypeJetonAction } from '@prisma/client';
-import { prisma } from '../../src/lib/prisma';
-
-function hacherJeton(jeton: string): string {
-  return createHash('sha256').update(jeton).digest('hex');
-}
 
 const EMAIL_ORGANISATRICE = 'organisatrice@meridien-formation.test';
 const MOT_DE_PASSE = 'ChangeMe!2026-demo-seed';
@@ -51,35 +44,5 @@ test.describe('Espace organisateur — liste et agenda des séminaires', () => {
     const corps = await reponse.text();
     expect(corps).toContain('BEGIN:VCALENDAR');
     expect(corps).not.toMatch(/@example\.test/);
-  });
-
-  test('un formateur ne voit, dans la liste, que ses propres séminaires — pas de bouton "Nouveau séminaire", pas de section abonnement', async ({
-    page,
-  }) => {
-    const formateur = await prisma.utilisateur.findFirstOrThrow({
-      where: { email: 'formateur@meridien-formation.test' },
-    });
-    const jeton = randomBytes(32).toString('base64url');
-    await prisma.jetonActionUtilisateur.create({
-      data: {
-        utilisateurId: formateur.id,
-        type: TypeJetonAction.CONNEXION_FORMATEUR,
-        tokenHash: hacherJeton(jeton),
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-      },
-    });
-
-    await page.goto(`/organisateur/connexion/formateur/${jeton}`);
-    await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-    await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
-
-    // Affecté (seed : formateur Issa Camara, PRINCIPAL sur ce séminaire).
-    await expect(page.getByRole('link', { name: 'Séminaire annuel des délégués régionaux' })).toBeVisible();
-    // Existe dans le cabinet mais n'est affecté à aucun séminaire de ce formateur.
-    await expect(page.getByRole('link', { name: 'Formation certifiante — places limitées' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Nouveau séminaire' })).toHaveCount(0);
-
-    await page.goto('/organisateur/seminaires/agenda?mois=2026-04');
-    await expect(page.getByText(/Abonnement agenda/)).toHaveCount(0);
   });
 });

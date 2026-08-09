@@ -3,7 +3,7 @@ import { Modalite, RoleUtilisateur, SourceInscription, StatutSeminaire } from '@
 import { prisma } from '../../src/lib/prisma';
 import { enregistrerNotation, genererCsvNotations, obtenirNotationsSeminaire } from '../../src/lib/organisateur/notations';
 import { inscrireParticipant } from '../../src/lib/inscription';
-import { genererCodePublicSeminaire } from '../../src/lib/jeton';
+import { genererCodeFormateur, genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 async function creerCabinetComplet() {
   const cabinet = await prisma.cabinet.create({ data: { nom: 'Cabinet test notations' } });
@@ -30,7 +30,7 @@ async function creerCabinetComplet() {
     },
   });
   await prisma.seminaireFormateur.create({
-    data: { seminaireId: seminaire.id, utilisateurId: formateurAffecte.id, roleFormateur: 'PRINCIPAL' },
+    data: { seminaireId: seminaire.id, utilisateurId: formateurAffecte.id, roleFormateur: 'PRINCIPAL', codeFormateur: genererCodeFormateur() },
   });
 
   const participant = await prisma.participant.create({

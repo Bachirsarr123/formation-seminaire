@@ -10,6 +10,7 @@ import {
   dupliquerSeminaire,
   modifierSeminaire,
   obtenirSeminaire,
+  regenererCodeFormateur,
   supprimerSeminaireLogiquement,
   type DonneesSeminaire,
 } from '../../src/lib/organisateur/seminaires';
@@ -68,6 +69,8 @@ describe('creerSeminaire', () => {
     expect(complet!.modules).toHaveLength(1);
     expect(complet!.formateurs).toHaveLength(1);
     expect(complet!.formateurs[0]!.utilisateurId).toBe(formateur.id);
+    // /f/{codeFormateur} : généré automatiquement, jamais vide.
+    expect(complet!.formateurs[0]!.codeFormateur).toBeTruthy();
   });
 
   it("refuse un formateur qui n'appartient pas au cabinet", async () => {
@@ -138,6 +141,63 @@ describe('modifierSeminaire', () => {
 
     const relu = await obtenirSeminaire(cabinetA.id, seminaire.id);
     expect(relu!.titre).not.toBe('Piraté');
+  });
+
+  it('conserve le codeFormateur (/f/{code}) d\'un formateur qui reste affecté, en génère un nouveau pour un formateur ajouté', async () => {
+    const cabinet = await creerCabinet();
+    const formateurRestant = await creerFormateur(cabinet.id);
+    const formateurAjoute = await creerFormateur(cabinet.id);
+    const seminaire = await creerSeminaire(
+      cabinet.id,
+      donneesDeBase({ formateurs: [{ utilisateurId: formateurRestant.id, roleFormateur: 'PRINCIPAL' }] }),
+    );
+    const avant = await obtenirSeminaire(cabinet.id, seminaire.id);
+    const codeAvant = avant!.formateurs.find((f) => f.utilisateurId === formateurRestant.id)!.codeFormateur;
+
+    // Un simple changement de titre ne doit jamais invalider silencieusement
+    // un lien /f/ déjà distribué à un formateur qui reste affecté.
+    await modifierSeminaire(
+      cabinet.id,
+      seminaire.id,
+      donneesDeBase({
+        titre: 'Titre modifié',
+        formateurs: [
+          { utilisateurId: formateurRestant.id, roleFormateur: 'PRINCIPAL' },
+          { utilisateurId: formateurAjoute.id, roleFormateur: 'INTERVENANT' },
+        ],
+      }),
+    );
+
+    const apres = await obtenirSeminaire(cabinet.id, seminaire.id);
+    const codeApresRestant = apres!.formateurs.find((f) => f.utilisateurId === formateurRestant.id)!.codeFormateur;
+    const codeAjoute = apres!.formateurs.find((f) => f.utilisateurId === formateurAjoute.id)!.codeFormateur;
+
+    expect(codeApresRestant).toBe(codeAvant);
+    expect(codeAjoute).toBeTruthy();
+    expect(codeAjoute).not.toBe(codeAvant);
+  });
+});
+
+describe('regenererCodeFormateur', () => {
+  it("remplace le code — jamais réutilisable — et renvoie null pour un séminaire d'un autre cabinet", async () => {
+    const cabinet = await creerCabinet();
+    const formateur = await creerFormateur(cabinet.id);
+    const seminaire = await creerSeminaire(
+      cabinet.id,
+      donneesDeBase({ formateurs: [{ utilisateurId: formateur.id, roleFormateur: 'PRINCIPAL' }] }),
+    );
+    const avant = await obtenirSeminaire(cabinet.id, seminaire.id);
+    const codeAvant = avant!.formateurs[0]!.codeFormateur;
+
+    const nouveauCode = await regenererCodeFormateur(cabinet.id, seminaire.id, formateur.id);
+    expect(nouveauCode).toBeTruthy();
+    expect(nouveauCode).not.toBe(codeAvant);
+
+    const apres = await obtenirSeminaire(cabinet.id, seminaire.id);
+    expect(apres!.formateurs[0]!.codeFormateur).toBe(nouveauCode);
+
+    const autreCabinet = await creerCabinet();
+    expect(await regenererCodeFormateur(autreCabinet.id, seminaire.id, formateur.id)).toBeNull();
   });
 });
 
@@ -238,6 +298,11 @@ describe('dupliquerSeminaire', () => {
     const copieComplete = await obtenirSeminaire(cabinet.id, copie!.id);
     expect(copieComplete!.modules.map((m) => m.titre)).toEqual(['Module A', 'Module B']);
     expect(copieComplete!.formateurs.map((f) => f.utilisateurId)).toEqual([formateur.id]);
+
+    // Jamais le même codeFormateur que l'original : le lien /f/ de l'original
+    // ne doit pas donner accès à la copie.
+    const originalComplet = await obtenirSeminaire(cabinet.id, original.id);
+    expect(copieComplete!.formateurs[0]!.codeFormateur).not.toBe(originalComplet!.formateurs[0]!.codeFormateur);
 
     const inscritsCopie = await prisma.inscription.count({ where: { seminaireId: copie!.id } });
     expect(inscritsCopie).toBe(0);

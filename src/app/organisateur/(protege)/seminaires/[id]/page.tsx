@@ -7,12 +7,13 @@ import { obtenirRecueil } from '@/lib/organisateur/recueil';
 import { LIBELLE_MODALITE, LIBELLE_STATUT_QUESTIONNAIRE, LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import {
+  construireLienFormateur,
   construireLienPublicSeminaire,
   genererApercuQrSvg,
   genererTexteInvitation,
 } from '@/lib/organisateur/diffusion';
 import { construireOrigineRequete } from '@/lib/origine-requete';
-import { dupliquerSeminaireAction } from './actions';
+import { dupliquerSeminaireAction, regenererCodeFormateurAction } from './actions';
 import { BoutonCopier } from './bouton-copier';
 import { BoutonSupprimer } from './bouton-supprimer';
 import { SelecteurStatut } from './selecteur-statut';
@@ -149,7 +150,9 @@ export default async function PageFicheSeminaire({ params }: Props) {
         </section>
       ) : null}
 
-      {seminaire.formateurs.length > 0 ? (
+      {seminaire.formateurs.length > 0 && !estFormateur ? (
+        <SectionFormateurs seminaireId={seminaire.id} formateurs={seminaire.formateurs} />
+      ) : seminaire.formateurs.length > 0 ? (
         <section>
           <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Formateurs</h2>
           <ul className="flex flex-col gap-1">
@@ -224,6 +227,56 @@ async function SectionRecueil({ seminaireId, cabinetId }: { seminaireId: string;
       >
         {recueil ? recueil.titre : 'Créer le recueil de besoins'}
       </a>
+    </section>
+  );
+}
+
+interface FormateurAvecCode {
+  utilisateurId: string;
+  roleFormateur: 'PRINCIPAL' | 'INTERVENANT';
+  codeFormateur: string;
+  utilisateur: { prenom: string; nom: string };
+}
+
+// Le formateur ne se connecte jamais : /f/{codeFormateur} est son SEUL accès
+// (fiche séminaire, participants, recueil, résultats, notation) — un lien par
+// paire (séminaire, formateur), régénérable ici (l'ancien cesse aussitôt de
+// fonctionner). Réservé à l'organisateur (!estFormateur à l'appel) : ce
+// n'est pas un lien à diffuser largement comme le lien public du séminaire.
+async function SectionFormateurs({ seminaireId, formateurs }: { seminaireId: string; formateurs: FormateurAvecCode[] }) {
+  const enTetes = await headers();
+  const origine = construireOrigineRequete(enTetes);
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Formateurs</h2>
+      <ul className="flex flex-col gap-3">
+        {formateurs.map((f) => {
+          const lien = construireLienFormateur(origine, f.codeFormateur);
+          const regenerer = regenererCodeFormateurAction.bind(null, seminaireId, f.utilisateurId);
+
+          return (
+            <li key={f.utilisateurId} className="flex flex-col gap-2 rounded-[var(--rayon-sm)] bg-[color:var(--gris-050)] p-3">
+              <p className="text-[color:var(--gris-800)]">
+                {f.utilisateur.prenom} {f.utilisateur.nom}
+                {f.roleFormateur === 'PRINCIPAL' ? ' (principal)' : ''}
+              </p>
+              <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">{lien}</p>
+              <div className="flex flex-wrap gap-3">
+                <BoutonCopier valeur={lien} />
+                <form action={regenerer}>
+                  <button
+                    type="submit"
+                    className="min-h-[44px] rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 text-[length:var(--taille-sm)] text-[color:var(--gris-800)]"
+                  >
+                    Régénérer le lien
+                  </button>
+                </form>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

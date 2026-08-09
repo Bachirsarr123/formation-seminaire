@@ -8,6 +8,7 @@ import {
   TransitionStatutInvalideError,
   changerStatutSeminaire,
   dupliquerSeminaire,
+  regenererCodeFormateur,
   supprimerSeminaireLogiquement,
 } from '@/lib/organisateur/seminaires';
 
@@ -27,6 +28,12 @@ export async function supprimerSeminaireAction(seminaireId: string): Promise<voi
   const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
   await supprimerSeminaireLogiquement(contexte.cabinetId, seminaireId);
   redirect('/organisateur/seminaires');
+}
+
+export async function regenererCodeFormateurAction(seminaireId: string, utilisateurId: string): Promise<void> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+  await regenererCodeFormateur(contexte.cabinetId, seminaireId, utilisateurId);
+  revalidatePath(`/organisateur/seminaires/${seminaireId}`);
 }
 
 export interface EtatChangementStatut {

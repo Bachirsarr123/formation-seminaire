@@ -6,7 +6,7 @@ import {
   genererCsvResultatsAgreges,
   obtenirResultatsSeminaire,
 } from '../../src/lib/organisateur/resultats';
-import { genererCodePublicSeminaire } from '../../src/lib/jeton';
+import { genererCodeFormateur, genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 async function creerCabinetAvecUtilisateurs() {
   const cabinet = await prisma.cabinet.create({ data: { nom: 'Cabinet test résultats organisateur' } });
@@ -63,7 +63,7 @@ describe('Résultats — accès organisateur/formateur et exports', () => {
     const { seminaire } = await creerSeminaireAvecQuestionnaire(cabinet.id, '2026-05-01', 5);
 
     await prisma.seminaireFormateur.create({
-      data: { seminaireId: seminaire.id, utilisateurId: formateurAffecte.id, roleFormateur: 'INTERVENANT' },
+      data: { seminaireId: seminaire.id, utilisateurId: formateurAffecte.id, roleFormateur: 'INTERVENANT', codeFormateur: genererCodeFormateur() },
     });
 
     const vuAffecte = await obtenirResultatsSeminaire(cabinet.id, seminaire.id, {

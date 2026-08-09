@@ -13,6 +13,23 @@ import type { ContexteOrganisateur } from './session';
 
 const LONGUEUR_JUSTIFICATION_MINIMALE = 10;
 
+// Partagé entre l'action organisateur (notations/actions.ts) et l'action
+// formateur (app/f/[codeFormateur]/notations/actions.ts) : même formulaire,
+// même parsing, deux points d'entrée différents pour vérifier l'accès.
+export const TYPES_NOTATION_VALIDES: TypeNotation[] = [
+  TypeNotation.PRESENCE,
+  TypeNotation.PARTICIPATION,
+  TypeNotation.TEST,
+  TypeNotation.APPRECIATION,
+];
+
+export function lireValeurNotation(formData: FormData, champ: string): number | null {
+  const brut = String(formData.get(champ) ?? '').trim();
+  if (brut === '') return null;
+  const valeur = Number(brut);
+  return Number.isFinite(valeur) ? valeur : null;
+}
+
 export interface NotationExistante {
   id: string;
   typeNotation: TypeNotation;

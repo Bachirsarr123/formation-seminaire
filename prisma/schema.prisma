@@ -102,7 +102,6 @@ model SessionOrganisateur {
 
 enum TypeJetonAction {
   REINITIALISATION_MOT_DE_PASSE
-  CONNEXION_FORMATEUR
 
   @@map("type_jeton_action")
 }
@@ -276,6 +275,11 @@ model SeminaireFormateur {
   seminaireId   String        @map("seminaire_id")
   utilisateurId String        @map("utilisateur_id")
   roleFormateur RoleFormateur @map("role_formateur")
+  // Secret permanent de la paire (séminaire, formateur) : /f/{codeFormateur}
+  // donne accès à tout ce qui concerne CE séminaire pour CE formateur, sans
+  // compte ni session (le formateur ne se connecte jamais). Régénérable
+  // depuis la fiche séminaire — l'ancien lien cesse alors de fonctionner.
+  codeFormateur String @unique @map("code_formateur")
 
   seminaire   Seminaire   @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
   utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)

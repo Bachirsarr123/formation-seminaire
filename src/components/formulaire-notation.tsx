@@ -3,7 +3,14 @@
 import { useActionState, useId } from 'react';
 import { LIBELLE_TYPE_NOTATION } from '@/lib/libelles';
 import type { NotationExistante } from '@/lib/organisateur/notations';
-import type { EtatNotation } from './actions';
+
+// Partagé entre l'espace organisateur (notations/actions.ts) et /f/{codeFormateur}
+// (app/f/[codeFormateur]/notations/actions.ts) — même formulaire, deux
+// actions différentes qui vérifient chacune l'accès à leur façon (session vs
+// code formateur).
+export interface EtatNotation {
+  erreur?: string;
+}
 
 const ETAT_INITIAL: EtatNotation = {};
 const TYPES = Object.keys(LIBELLE_TYPE_NOTATION) as (keyof typeof LIBELLE_TYPE_NOTATION)[];

@@ -106,10 +106,3 @@ export async function envoyerLienReinitialisationMotDePasse(
   });
 }
 
-export async function envoyerLienMagiqueFormateur(destinataire: DestinataireBase, lien: string): Promise<void> {
-  await adaptateurActif.envoyer({
-    destinataire,
-    sujet: 'Votre lien de connexion',
-    corps: `Ce lien est valable 15 minutes et ne fonctionne qu'une fois : ${lien}`,
-  });
-}
