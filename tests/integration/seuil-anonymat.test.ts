@@ -22,13 +22,16 @@ async function creerSeminaire() {
   });
 }
 
+// Préfixé par seminaireId (uuid généré à chaque création) : `codeSuiviHash`
+// est désormais unique en base, un littéral partagé entre deux séminaires
+// (ou deux exécutions successives de la suite) violerait la contrainte.
 async function ajouterMessages(seminaireId: string, n: number) {
   for (let i = 0; i < n; i++) {
     await prisma.messageAnonyme.create({
       data: {
         seminaireId,
         contenu: `Message ${i + 1}`,
-        codeSuiviHash: `hash-${i + 1}`,
+        codeSuiviHash: `${seminaireId}-hash-${i + 1}`,
       },
     });
   }

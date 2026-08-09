@@ -718,8 +718,12 @@ model MessageAnonyme {
   seminaireId         String        @map("seminaire_id")
   contenu             String
   jourEnvoi           DateTime      @default(dbgenerated("CURRENT_DATE")) @map("jour_envoi") @db.Date
-  // permet à l'auteur de revenir lire une réponse sans se dévoiler
-  codeSuiviHash       String        @map("code_suivi_hash")
+  // permet à l'auteur de revenir lire une réponse sans se dévoiler — jamais
+  // stocké en clair (voir genererCodeSuiviMessage/hacherJeton). @unique comme
+  // tous les autres champs de hash de jeton du schéma (SessionOrganisateur.
+  // tokenHash, JetonActionUtilisateur.tokenHash, Inscription.jeton) : une
+  // recherche par code doit être non ambiguë par construction.
+  codeSuiviHash       String        @unique @map("code_suivi_hash")
   statut              StatutMessage @default(NOUVEAU)
   reponseOrganisateur String?       @map("reponse_organisateur")
   dateReponse         DateTime?     @map("date_reponse")

@@ -118,6 +118,13 @@ export default async function PageMonEspace() {
         </>
       ) : null}
 
+      <a
+        href="/mon-espace/messages"
+        className="min-h-[44px] rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 py-3 text-center text-[color:var(--gris-800)]"
+      >
+        Envoyer un message anonyme
+      </a>
+
       <section aria-label="Vos préférences" className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
         <h2 className="text-[length:var(--taille-md)]">Vos préférences</h2>
         <ToggleConsentement

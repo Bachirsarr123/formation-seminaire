@@ -2,6 +2,7 @@ import type {
   Modalite,
   SourceInscription,
   StatutInscription,
+  StatutMessage,
   StatutQuestionnaire,
   StatutSeminaire,
   TypeNotation,
@@ -62,6 +63,12 @@ export const LIBELLE_TYPE_RECUEIL_QUESTION: Record<TypeRecueilQuestion, string> 
   TEXTE_LIBRE: 'Texte libre',
   CHOIX_UNIQUE: 'Choix unique',
   CHOIX_MULTIPLE: 'Choix multiple',
+};
+
+export const LIBELLE_STATUT_MESSAGE: Record<StatutMessage, string> = {
+  NOUVEAU: 'Nouveau',
+  LU: 'Lu',
+  TRAITE: 'Traité',
 };
 
 export const LIBELLE_TYPE_NOTATION: Record<TypeNotation, string> = {

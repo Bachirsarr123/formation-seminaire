@@ -22,3 +22,12 @@ export function genererCodeAccesRecueil(): string {
 export function genererCodeConsultationRecueil(): string {
   return nanoid(21);
 }
+
+// Code de suivi d'un message anonyme (lot messages) : contrairement aux
+// jetons ci-dessus, celui-ci est SAISI À LA MAIN par un participant qui
+// revient consulter une réponse — 12 caractères (alphabet nanoid par défaut,
+// ~71 bits d'entropie) reste non devinable tout en étant transcriptible.
+// Jamais stocké en clair (voir hacherJeton, lib/organisateur/jeton-hash.ts).
+export function genererCodeSuiviMessage(): string {
+  return nanoid(12);
+}
