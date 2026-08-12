@@ -38,11 +38,6 @@ export interface ValeursInitialesSeminaire {
   seuilAnonymat: number;
   modules: ModuleInitial[];
   formateurs: FormateurInitial[];
-  // Pour l'aperçu du logo déjà téléversé (édition) — codePublic sert à
-  // construire l'URL de la route publique qui le sert (route déjà
-  // authentifiée par le code, pas besoin d'une route organisateur dédiée).
-  codePublic?: string;
-  logoClientUrl?: string | null;
 }
 
 interface Props {
@@ -180,25 +175,18 @@ export function FormulaireSeminaire({ action, formateursDisponibles, valeursInit
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="logoClient" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
-          Logo de l&apos;entreprise cliente (image, 2 Mo maximum)
-        </label>
-        {valeursInitiales?.logoClientUrl && valeursInitiales.codePublic ? (
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/s/${valeursInitiales.codePublic}/logo-client`}
-              alt=""
-              className="h-8 w-8 rounded-full object-cover"
-            />
-            <span className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-              Logo actuel — en téléverser un nouveau le remplace.
-            </span>
-          </div>
-        ) : null}
-        <input id="logoClient" type="file" name="logoClient" accept="image/*" />
-      </div>
+      {/* Uniquement à la création : en édition, le logo client a son propre
+          widget indépendant (page Modifier) qui remplace immédiatement le
+          fichier sans passer par ce formulaire — voir
+          seminaires/[id]/modifier/formulaire-logo-client.tsx. */}
+      {!valeursInitiales ? (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="logoClient" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
+            Logo de l&apos;entreprise cliente (image, 2 Mo maximum)
+          </label>
+          <input id="logoClient" type="file" name="logoClient" accept="image/*" />
+        </div>
+      ) : null}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">Modules</legend>

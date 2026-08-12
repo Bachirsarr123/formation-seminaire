@@ -2,9 +2,10 @@ import type { CSSProperties } from 'react';
 import { chargerReponsesRecueil } from '@/lib/recueil/consultation';
 import { libellesReponseRecueil } from '@/lib/recueil/options';
 import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-accent';
-import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
 import { EnTeteLogos } from '@/components/en-tete-logos';
 import { CartePublique } from '@/components/carte-publique';
+import { PagePublique } from '@/components/page-publique';
+import { TitrePage } from '@/components/titre-page';
 
 interface Props {
   params: Promise<{ codeConsultation: string }>;
@@ -25,10 +26,7 @@ export default async function PageConsultationRecueil({ params }: Props) {
   const jetons = deriverJetonsAccent(recueil.cabinet.couleurPrimaire);
 
   return (
-    <main
-      style={stylesJetonsAccent(jetons) as CSSProperties}
-      className="mx-auto flex min-h-screen max-w-2xl flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
-    >
+    <PagePublique style={stylesJetonsAccent(jetons) as CSSProperties} cabinet={recueil.cabinet}>
       <EnTeteLogos
         cabinet={recueil.cabinet}
         codePublic={recueil.seminaire.codePublic}
@@ -36,13 +34,11 @@ export default async function PageConsultationRecueil({ params }: Props) {
       />
 
       <CartePublique>
-        <header className="flex flex-col gap-1">
-          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">Séminaire de formation :</p>
-          <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{recueil.seminaire.titre}</h1>
-          <p className="chiffre text-[color:var(--gris-700)]">
+        <TitrePage surtitre="Séminaire de formation" titre={recueil.seminaire.titre}>
+          <span className="chiffre w-fit rounded-[var(--rayon-plein)] bg-[color:var(--couleur-accent)] px-3 py-1 text-[length:var(--taille-xs)] font-semibold text-[color:var(--couleur-accent-contraste)]">
             {recueil.reponses.length} réponse{recueil.reponses.length > 1 ? 's' : ''} reçue{recueil.reponses.length > 1 ? 's' : ''}
-          </p>
-        </header>
+          </span>
+        </TitrePage>
 
         {recueil.reponses.length === 0 ? (
           <p className="text-[color:var(--gris-700)]">Aucune réponse pour l&apos;instant.</p>
@@ -98,8 +94,6 @@ export default async function PageConsultationRecueil({ params }: Props) {
           </section>
         )}
       </CartePublique>
-
-      <PiedDePageCabinet cabinet={recueil.cabinet} />
-    </main>
+    </PagePublique>
   );
 }

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 export function CartePublique({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`flex flex-col gap-[var(--espace-8)] rounded-[var(--rayon-lg)] bg-[color:var(--gris-000)] p-6 shadow-[var(--ombre-md)] ${className}`}
+      className={`flex flex-col gap-[var(--espace-8)] rounded-[var(--rayon-lg)] bg-[color:var(--gris-000)] p-6 shadow-[var(--ombre-md)] sm:p-8 ${className}`}
     >
       {children}
     </div>

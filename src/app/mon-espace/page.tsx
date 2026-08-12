@@ -10,7 +10,8 @@ import { prisma } from '@/lib/prisma';
 import { AccesIntrouvable } from '@/components/acces-introuvable';
 import { EnTeteLogos } from '@/components/en-tete-logos';
 import { CartePublique } from '@/components/carte-publique';
-import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
+import { PagePublique } from '@/components/page-publique';
+import { TitrePage } from '@/components/titre-page';
 import { BoutonAnnuler } from './bouton-annuler';
 import { BoutonReinscrire } from './bouton-reinscrire';
 import { ToggleConsentement } from './toggle-consentement';
@@ -37,25 +38,22 @@ export default async function PageMonEspace() {
 
   if (contexte.inscription.statut === 'ANNULEE') {
     return (
-      <main
-        style={style}
-        className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
-      >
+      <PagePublique style={style} cabinet={contexte.seminaire.cabinet}>
         <EnTeteLogos
           cabinet={contexte.seminaire.cabinet}
           codePublic={contexte.seminaire.codePublic}
           logoClientUrl={contexte.seminaire.logoClientUrl}
         />
         <CartePublique>
-          <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
-          <p className="text-[color:var(--gris-700)]">Votre inscription est annulée.</p>
-          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
+          <TitrePage titre={contexte.seminaire.titre}>
+            <p className="text-[color:var(--gris-700)]">Votre inscription est annulée.</p>
+          </TitrePage>
+          <p className="text-center text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
             Vous pouvez vous réinscrire à tout moment, en un clic.
           </p>
           <BoutonReinscrire />
         </CartePublique>
-        <PiedDePageCabinet cabinet={contexte.seminaire.cabinet} />
-      </main>
+      </PagePublique>
     );
   }
 
@@ -75,10 +73,7 @@ export default async function PageMonEspace() {
   const supports = phase !== 'AVANT' ? await listerSupportsVisibles(contexte.seminaire.id) : [];
 
   return (
-    <main
-      style={style}
-      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
-    >
+    <PagePublique style={style} cabinet={contexte.seminaire.cabinet}>
       <EnTeteLogos
         cabinet={contexte.seminaire.cabinet}
         codePublic={contexte.seminaire.codePublic}
@@ -87,21 +82,20 @@ export default async function PageMonEspace() {
 
       <CartePublique>
         {contexte.inscription.statut === 'EN_ATTENTE' ? (
-          <p className="rounded-[var(--rayon-sm)] bg-[color:var(--gris-050)] p-3 text-[color:var(--gris-700)]">
+          <p className="rounded-[var(--rayon-sm)] border-l-4 border-[color:var(--couleur-accent)] bg-[color:var(--gris-050)] p-3 text-[color:var(--gris-700)]">
             Votre inscription est en cours de validation par l&apos;organisateur. Vous recevrez votre accès dès que ce
             sera fait.
           </p>
         ) : null}
 
-        <header>
-          <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
+        <TitrePage titre={contexte.seminaire.titre}>
           <p className="text-[color:var(--gris-700)]">
             {formaterDateLongue(contexte.seminaire.dateDebut)} · {formaterHeure(contexte.seminaire.dateDebut)}–
             {formaterHeure(contexte.seminaire.dateFin)}
             {contexte.seminaire.lieu ? ` · ${contexte.seminaire.lieu}` : ''}
           </p>
           {contexte.seminaire.tarif ? <p className="text-[color:var(--gris-700)]">{contexte.seminaire.tarif}</p> : null}
-        </header>
+        </TitrePage>
 
         {phase === 'AVANT' ? (
           <>
@@ -186,9 +180,7 @@ export default async function PageMonEspace() {
           </section>
         ) : null}
       </CartePublique>
-
-      <PiedDePageCabinet cabinet={contexte.seminaire.cabinet} />
-    </main>
+    </PagePublique>
   );
 }
 

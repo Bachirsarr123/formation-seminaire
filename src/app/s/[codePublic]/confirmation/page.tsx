@@ -8,7 +8,8 @@ import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-ac
 import { AccesIntrouvable } from '@/components/acces-introuvable';
 import { EnTeteLogos } from '@/components/en-tete-logos';
 import { CartePublique } from '@/components/carte-publique';
-import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
+import { PagePublique } from '@/components/page-publique';
+import { TitrePage } from '@/components/titre-page';
 import { BoutonCopier } from './bouton-copier';
 import { PurgerBrouillon } from './purger-brouillon';
 
@@ -43,10 +44,7 @@ export default async function PageConfirmation({ searchParams }: Props) {
   const jetons = deriverJetonsAccent(contexte.seminaire.cabinet.couleurPrimaire);
 
   return (
-    <main
-      style={stylesJetonsAccent(jetons) as CSSProperties}
-      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
-    >
+    <PagePublique style={stylesJetonsAccent(jetons) as CSSProperties} cabinet={contexte.seminaire.cabinet}>
       <PurgerBrouillon />
 
       <EnTeteLogos
@@ -56,22 +54,20 @@ export default async function PageConfirmation({ searchParams }: Props) {
       />
 
       <CartePublique>
-        <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
-          {titrePourEtat(contexte.inscription.statut, situation)}
-        </h1>
+        <TitrePage titre={titrePourEtat(contexte.inscription.statut, situation)}>
+          {contexte.inscription.statut === 'EN_ATTENTE' ? (
+            <p className="text-[color:var(--gris-700)]">
+              Elle doit être validée par l&apos;organisateur avant confirmation définitive. Vous recevrez votre accès dès
+              que ce sera fait.
+            </p>
+          ) : (
+            <p className="text-[color:var(--gris-700)]">
+              Voici votre accès personnel — conservez-le, il vous resservira pour retrouver votre espace à tout moment.
+            </p>
+          )}
+        </TitrePage>
 
-        {contexte.inscription.statut === 'EN_ATTENTE' ? (
-          <p className="text-[color:var(--gris-700)]">
-            Elle doit être validée par l&apos;organisateur avant confirmation définitive. Vous recevrez votre accès dès
-            que ce sera fait.
-          </p>
-        ) : (
-          <p className="text-[color:var(--gris-700)]">
-            Voici votre accès personnel — conservez-le, il vous resservira pour retrouver votre espace à tout moment.
-          </p>
-        )}
-
-        <div className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+        <div className="flex flex-col gap-3 rounded-[var(--rayon-md)] border-l-4 border-[color:var(--couleur-accent)] bg-[color:var(--gris-050)] p-4">
           <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">{lienPersonnel}</p>
           <div className="flex flex-wrap items-center gap-3">
             <BoutonCopier lien={lienPersonnel} />
@@ -91,8 +87,6 @@ export default async function PageConfirmation({ searchParams }: Props) {
           Ajouter à mon calendrier
         </a>
       </CartePublique>
-
-      <PiedDePageCabinet cabinet={contexte.seminaire.cabinet} />
-    </main>
+    </PagePublique>
   );
 }

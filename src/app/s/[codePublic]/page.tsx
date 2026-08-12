@@ -7,7 +7,8 @@ import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import { LIBELLE_MODALITE } from '@/lib/libelles';
 import { EnTeteLogos } from '@/components/en-tete-logos';
 import { CartePublique } from '@/components/carte-publique';
-import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
+import { PagePublique } from '@/components/page-publique';
+import { TitrePage } from '@/components/titre-page';
 
 interface Props {
   params: Promise<{ codePublic: string }>;
@@ -26,30 +27,29 @@ export default async function PageSeminairePublic({ params }: Props) {
   const style = stylesJetonsAccent(jetons) as CSSProperties;
 
   return (
-    <main
-      style={style}
-      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
-    >
+    <PagePublique style={style} cabinet={seminaire.cabinet}>
       <EnTeteLogos cabinet={seminaire.cabinet} codePublic={codePublic} logoClientUrl={seminaire.logoClientUrl} />
 
       <CartePublique>
-        <div>
-          <h1 className="text-[length:var(--taille-xl)] leading-[var(--interligne-xl)] text-[color:var(--gris-900)]">
-            {seminaire.titre}
-          </h1>
+        <TitrePage surtitre="Séminaire de formation" titre={seminaire.titre}>
           {seminaire.description ? (
-            <p className="mt-2 text-[color:var(--gris-700)]">{seminaire.description}</p>
+            <p className="text-[color:var(--gris-700)]">{seminaire.description}</p>
           ) : null}
-        </div>
+        </TitrePage>
 
-        <section aria-label="Informations pratiques" className="flex flex-col gap-2 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4 text-[color:var(--gris-700)]">
+        <section
+          aria-label="Informations pratiques"
+          className="flex flex-col gap-2 rounded-[var(--rayon-md)] border-l-4 border-[color:var(--couleur-accent)] bg-[color:var(--gris-050)] p-4 text-[color:var(--gris-700)]"
+        >
           <p>
             <span className="font-medium text-[color:var(--gris-900)]">{formaterDateLongue(seminaire.dateDebut)}</span>
             {' · '}
             {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
           </p>
           {seminaire.lieu || seminaire.tarif ? <p>{[seminaire.lieu, seminaire.tarif].filter(Boolean).join(' · ')}</p> : null}
-          <p>{LIBELLE_MODALITE[seminaire.modalite] ?? seminaire.modalite}</p>
+          <span className="w-fit rounded-[var(--rayon-plein)] bg-[color:var(--couleur-accent)] px-3 py-1 text-[length:var(--taille-xs)] font-semibold text-[color:var(--couleur-accent-contraste)]">
+            {LIBELLE_MODALITE[seminaire.modalite] ?? seminaire.modalite}
+          </span>
         </section>
 
         {seminaire.formateurs.length > 0 ? (
@@ -95,9 +95,7 @@ export default async function PageSeminairePublic({ params }: Props) {
 
         <EtatInscription etat={etat.type} codePublic={codePublic} />
       </CartePublique>
-
-      <PiedDePageCabinet cabinet={seminaire.cabinet} />
-    </main>
+    </PagePublique>
   );
 }
 

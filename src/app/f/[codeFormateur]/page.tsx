@@ -10,7 +10,8 @@ import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-ac
 import { ResultatsSeminaire } from '@/components/resultats-seminaire';
 import { EnTeteLogos } from '@/components/en-tete-logos';
 import { CartePublique } from '@/components/carte-publique';
-import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
+import { PagePublique } from '@/components/page-publique';
+import { TitrePage } from '@/components/titre-page';
 
 interface Props {
   params: Promise<{ codeFormateur: string }>;
@@ -49,28 +50,21 @@ export default async function PageLienFormateur({ params }: Props) {
   const jetons = deriverJetonsAccent(contexte.cabinet.couleurPrimaire);
 
   return (
-    <main
-      style={stylesJetonsAccent(jetons) as CSSProperties}
-      className="mx-auto flex min-h-screen max-w-2xl flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
-    >
+    <PagePublique style={stylesJetonsAccent(jetons) as CSSProperties} cabinet={contexte.cabinet}>
       <EnTeteLogos cabinet={contexte.cabinet} codePublic={seminaire.codePublic} logoClientUrl={seminaire.logoClientUrl} />
 
       <CartePublique>
-        <header className="flex flex-col gap-1">
-          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
-            Bonjour {contexte.formateur.prenom} {contexte.formateur.nom},
-          </p>
-          <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
+        <TitrePage surtitre={`Bonjour ${contexte.formateur.prenom} ${contexte.formateur.nom}`} titre={seminaire.titre}>
           <p className="text-[color:var(--gris-700)]">
             {formaterDateLongue(seminaire.dateDebut)} · {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
             {seminaire.lieu ? ` · ${seminaire.lieu}` : ''} · {LIBELLE_MODALITE[seminaire.modalite]}
           </p>
           {contexte.formateur.cvUrl ? (
-            <a href={`/f/${codeFormateur}/cv`} target="_blank" rel="noreferrer" className="w-fit text-[length:var(--taille-sm)] underline">
+            <a href={`/f/${codeFormateur}/cv`} target="_blank" rel="noreferrer" className="text-[length:var(--taille-sm)] underline">
               Voir mon CV
             </a>
           ) : null}
-        </header>
+        </TitrePage>
 
         <a
           href={`/f/${codeFormateur}/notations`}
@@ -168,8 +162,6 @@ export default async function PageLienFormateur({ params }: Props) {
           </section>
         ) : null}
       </CartePublique>
-
-      <PiedDePageCabinet cabinet={contexte.cabinet} />
-    </main>
+    </PagePublique>
   );
 }

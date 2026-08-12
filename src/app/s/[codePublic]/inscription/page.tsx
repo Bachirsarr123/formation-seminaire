@@ -7,7 +7,8 @@ import { genererJetonFormulaire } from '@/lib/anti-spam';
 import { texteConsentement } from '@/lib/consentement/textes';
 import { EnTeteLogos } from '@/components/en-tete-logos';
 import { CartePublique } from '@/components/carte-publique';
-import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
+import { PagePublique } from '@/components/page-publique';
+import { TitrePage } from '@/components/titre-page';
 import { inscrireAction } from './actions';
 import { FormulaireInscription } from './formulaire-inscription';
 
@@ -35,21 +36,16 @@ export default async function PageInscription({ params }: Props) {
   const texteEmployeur = texteConsentement('PARTAGE_EMPLOYEUR');
 
   return (
-    <main
-      style={stylesJetonsAccent(jetons) as CSSProperties}
-      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
-    >
+    <PagePublique style={stylesJetonsAccent(jetons) as CSSProperties} cabinet={seminaire.cabinet}>
       <EnTeteLogos cabinet={seminaire.cabinet} codePublic={codePublic} logoClientUrl={seminaire.logoClientUrl} />
 
       <CartePublique>
-        <header className="flex flex-col gap-1">
-          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">Vous vous inscrivez à</p>
-          <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
+        <TitrePage surtitre="Vous vous inscrivez à" titre={seminaire.titre}>
           <p className="text-[color:var(--gris-700)]">
             {formaterDateLongue(seminaire.dateDebut)} · {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
             {seminaire.lieu ? ` · ${seminaire.lieu}` : ''}
           </p>
-        </header>
+        </TitrePage>
 
         <FormulaireInscription
           action={inscrireAction.bind(null, codePublic)}
@@ -59,8 +55,6 @@ export default async function PageInscription({ params }: Props) {
           texteEmployeur={texteEmployeur.texte}
         />
       </CartePublique>
-
-      <PiedDePageCabinet cabinet={seminaire.cabinet} />
-    </main>
+    </PagePublique>
   );
 }
