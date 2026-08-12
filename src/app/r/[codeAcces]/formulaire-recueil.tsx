@@ -6,7 +6,7 @@ import { NOM_CHAMP_HONEYPOT } from '@/lib/anti-spam-honeypot';
 import { QuestionRecueil, type RecueilQuestionAAfficher } from './question-recueil';
 import type { EtatFormulaireRecueil, ValeursFormulaireRecueil } from './types';
 
-const VALEURS_VIDES: ValeursFormulaireRecueil = { prenom: '', nom: '', fonction: '', organisation: '' };
+const VALEURS_VIDES: ValeursFormulaireRecueil = { prenom: '', nom: '', fonction: '' };
 
 interface Props {
   action: (etat: EtatFormulaireRecueil, formData: FormData) => Promise<EtatFormulaireRecueil>;
@@ -43,7 +43,6 @@ export function FormulaireRecueil({ action, jetonFormulaire, questions }: Props)
         <ChampTexte label="Prénom" name="prenom" autoComplete="given-name" defaultValue={valeurs.prenom} erreur={etat.erreursChamps?.prenom} requis />
         <ChampTexte label="Nom" name="nom" autoComplete="family-name" defaultValue={valeurs.nom} erreur={etat.erreursChamps?.nom} requis />
         <ChampTexte label="Fonction (facultatif)" name="fonction" autoComplete="organization-title" defaultValue={valeurs.fonction} />
-        <ChampTexte label="Organisation (facultatif)" name="organisation" autoComplete="organization" defaultValue={valeurs.organisation} />
       </section>
 
       {questions.length > 0 ? (

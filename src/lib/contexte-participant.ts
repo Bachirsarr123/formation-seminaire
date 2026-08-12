@@ -27,7 +27,15 @@ export interface ContexteParticipant {
     modalite: string;
     statut: string;
     modules: { id: string; titre: string; dureeMinutes: number; ordre: number }[];
-    cabinet: { nom: string; logoUrl: string | null; couleurPrimaire: string | null };
+    cabinet: {
+      id: string;
+      nom: string;
+      logoUrl: string | null;
+      couleurPrimaire: string | null;
+      adresse: string | null;
+      emailContact: string | null;
+      telephoneContact: string | null;
+    };
     logoClientUrl: string | null;
   };
 }
@@ -78,7 +86,17 @@ export const resoudreContexteParticipant = cache(
             statut: true,
             supprimeLe: true,
             modules: { select: { id: true, titre: true, dureeMinutes: true, ordre: true }, orderBy: { ordre: 'asc' } },
-            cabinet: { select: { nom: true, logoUrl: true, couleurPrimaire: true } },
+            cabinet: {
+              select: {
+                id: true,
+                nom: true,
+                logoUrl: true,
+                couleurPrimaire: true,
+                adresse: true,
+                emailContact: true,
+                telephoneContact: true,
+              },
+            },
             logoClientUrl: true,
           },
         },

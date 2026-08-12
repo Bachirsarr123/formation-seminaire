@@ -5,6 +5,7 @@ import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { analyserFormulaireFormateur } from '@/lib/organisateur/formulaire-equipe';
 import { EmailDejaUtiliseError, creerFormateur, desactiverCompte } from '@/lib/organisateur/equipe';
 import { enregistrerCvFormateur, erreurCvInvalide } from '@/lib/organisateur/cv-formateur';
+import { enregistrerLogoCabinet, erreurLogoCabinetInvalide } from '@/lib/organisateur/logo-cabinet';
 
 // Les deux actions ci-dessous sont réservées aux organisateurs (rôle vérifié
 // explicitement, jamais seulement la session) — la page elle-même l'exige
@@ -69,6 +70,31 @@ export async function televerserCvAction(
   const contenu = Buffer.from(await fichier.arrayBuffer());
   const ok = await enregistrerCvFormateur(contexte.cabinetId, utilisateurId, fichier.name, contenu);
   if (!ok) return { erreur: 'Formateur introuvable.' };
+
+  revalidatePath('/organisateur/equipe');
+  return {};
+}
+
+export interface EtatUploadLogoCabinet {
+  erreur?: string;
+}
+
+export async function televerserLogoCabinetAction(
+  _etatPrecedent: EtatUploadLogoCabinet,
+  formData: FormData,
+): Promise<EtatUploadLogoCabinet> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+
+  const fichier = formData.get('logo');
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { erreur: 'Sélectionnez un fichier.' };
+  }
+
+  const erreurValidation = erreurLogoCabinetInvalide(fichier.type, fichier.size);
+  if (erreurValidation) return { erreur: erreurValidation };
+
+  const contenu = Buffer.from(await fichier.arrayBuffer());
+  await enregistrerLogoCabinet(contexte.cabinetId, fichier.name, contenu);
 
   revalidatePath('/organisateur/equipe');
   return {};

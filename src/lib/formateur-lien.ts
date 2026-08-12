@@ -7,7 +7,15 @@ export interface ContexteLienFormateur {
   utilisateurId: string;
   cabinetId: string;
   formateur: { nom: string; prenom: string; cvUrl: string | null };
-  cabinet: { nom: string; logoUrl: string | null };
+  cabinet: {
+    id: string;
+    nom: string;
+    logoUrl: string | null;
+    couleurPrimaire: string | null;
+    adresse: string | null;
+    emailContact: string | null;
+    telephoneContact: string | null;
+  };
   seminaire: {
     id: string;
     codePublic: string;
@@ -51,7 +59,17 @@ export const resoudreContexteLienFormateur = cache(
             statut: true,
             supprimeLe: true,
             logoClientUrl: true,
-            cabinet: { select: { nom: true, logoUrl: true } },
+            cabinet: {
+              select: {
+                id: true,
+                nom: true,
+                logoUrl: true,
+                couleurPrimaire: true,
+                adresse: true,
+                emailContact: true,
+                telephoneContact: true,
+              },
+            },
           },
         },
       },

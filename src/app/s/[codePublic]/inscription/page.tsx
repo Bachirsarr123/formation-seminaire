@@ -5,6 +5,9 @@ import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-ac
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import { genererJetonFormulaire } from '@/lib/anti-spam';
 import { texteConsentement } from '@/lib/consentement/textes';
+import { EnTeteLogos } from '@/components/en-tete-logos';
+import { CartePublique } from '@/components/carte-publique';
+import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
 import { inscrireAction } from './actions';
 import { FormulaireInscription } from './formulaire-inscription';
 
@@ -32,23 +35,32 @@ export default async function PageInscription({ params }: Props) {
   const texteEmployeur = texteConsentement('PARTAGE_EMPLOYEUR');
 
   return (
-    <main style={stylesJetonsAccent(jetons) as CSSProperties} className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-4 pb-12">
-      <header className="flex flex-col gap-1">
-        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Vous vous inscrivez à</p>
-        <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
-        <p className="text-[color:var(--gris-600)]">
-          {formaterDateLongue(seminaire.dateDebut)} · {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
-          {seminaire.lieu ? ` · ${seminaire.lieu}` : ''}
-        </p>
-      </header>
+    <main
+      style={stylesJetonsAccent(jetons) as CSSProperties}
+      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
+    >
+      <EnTeteLogos cabinet={seminaire.cabinet} codePublic={codePublic} logoClientUrl={seminaire.logoClientUrl} />
 
-      <FormulaireInscription
-        action={inscrireAction.bind(null, codePublic)}
-        jetonFormulaire={jetonFormulaire}
-        texteInformation={`${texteInformation.texte} ${texteInformation.dureeConservation}`}
-        texteCommunications={texteCommunications.texte}
-        texteEmployeur={texteEmployeur.texte}
-      />
+      <CartePublique>
+        <header className="flex flex-col gap-1">
+          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">Vous vous inscrivez à</p>
+          <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
+          <p className="text-[color:var(--gris-700)]">
+            {formaterDateLongue(seminaire.dateDebut)} · {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
+            {seminaire.lieu ? ` · ${seminaire.lieu}` : ''}
+          </p>
+        </header>
+
+        <FormulaireInscription
+          action={inscrireAction.bind(null, codePublic)}
+          jetonFormulaire={jetonFormulaire}
+          texteInformation={`${texteInformation.texte} ${texteInformation.dureeConservation}`}
+          texteCommunications={texteCommunications.texte}
+          texteEmployeur={texteEmployeur.texte}
+        />
+      </CartePublique>
+
+      <PiedDePageCabinet cabinet={seminaire.cabinet} />
     </main>
   );
 }

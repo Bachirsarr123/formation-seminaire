@@ -9,6 +9,8 @@ import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import { prisma } from '@/lib/prisma';
 import { AccesIntrouvable } from '@/components/acces-introuvable';
 import { EnTeteLogos } from '@/components/en-tete-logos';
+import { CartePublique } from '@/components/carte-publique';
+import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
 import { BoutonAnnuler } from './bouton-annuler';
 import { BoutonReinscrire } from './bouton-reinscrire';
 import { ToggleConsentement } from './toggle-consentement';
@@ -35,18 +37,24 @@ export default async function PageMonEspace() {
 
   if (contexte.inscription.statut === 'ANNULEE') {
     return (
-      <main style={style} className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 p-4">
+      <main
+        style={style}
+        className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
+      >
         <EnTeteLogos
           cabinet={contexte.seminaire.cabinet}
           codePublic={contexte.seminaire.codePublic}
           logoClientUrl={contexte.seminaire.logoClientUrl}
         />
-        <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
-        <p className="text-[color:var(--gris-700)]">Votre inscription est annulée.</p>
-        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-          Vous pouvez vous réinscrire à tout moment, en un clic.
-        </p>
-        <BoutonReinscrire />
+        <CartePublique>
+          <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
+          <p className="text-[color:var(--gris-700)]">Votre inscription est annulée.</p>
+          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
+            Vous pouvez vous réinscrire à tout moment, en un clic.
+          </p>
+          <BoutonReinscrire />
+        </CartePublique>
+        <PiedDePageCabinet cabinet={contexte.seminaire.cabinet} />
       </main>
     );
   }
@@ -67,112 +75,119 @@ export default async function PageMonEspace() {
   const supports = phase !== 'AVANT' ? await listerSupportsVisibles(contexte.seminaire.id) : [];
 
   return (
-    <main style={style} className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-4 pb-12">
-      {contexte.inscription.statut === 'EN_ATTENTE' ? (
-        <p className="rounded-[var(--rayon-sm)] bg-[color:var(--gris-050)] p-3 text-[color:var(--gris-700)]">
-          Votre inscription est en cours de validation par l&apos;organisateur. Vous recevrez votre accès dès que ce
-          sera fait.
-        </p>
-      ) : null}
-
+    <main
+      style={style}
+      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
+    >
       <EnTeteLogos
         cabinet={contexte.seminaire.cabinet}
         codePublic={contexte.seminaire.codePublic}
         logoClientUrl={contexte.seminaire.logoClientUrl}
       />
 
-      <header>
-        <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
-        <p className="text-[color:var(--gris-600)]">
-          {formaterDateLongue(contexte.seminaire.dateDebut)} · {formaterHeure(contexte.seminaire.dateDebut)}–
-          {formaterHeure(contexte.seminaire.dateFin)}
-          {contexte.seminaire.lieu ? ` · ${contexte.seminaire.lieu}` : ''}
-        </p>
-        {contexte.seminaire.tarif ? <p className="text-[color:var(--gris-600)]">{contexte.seminaire.tarif}</p> : null}
-      </header>
+      <CartePublique>
+        {contexte.inscription.statut === 'EN_ATTENTE' ? (
+          <p className="rounded-[var(--rayon-sm)] bg-[color:var(--gris-050)] p-3 text-[color:var(--gris-700)]">
+            Votre inscription est en cours de validation par l&apos;organisateur. Vous recevrez votre accès dès que ce
+            sera fait.
+          </p>
+        ) : null}
 
-      {phase === 'AVANT' ? (
-        <>
-          <ProgrammeSeminaire modules={contexte.seminaire.modules} titreSection="Programme" />
-          <a
-            href={`/s/${contexte.seminaire.codePublic}/calendrier.ics`}
-            className="min-h-[44px] rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 py-3 text-center text-[color:var(--gris-800)]"
-          >
-            Ajouter à mon calendrier
-          </a>
-          <BoutonAnnuler />
-        </>
-      ) : null}
+        <header>
+          <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
+          <p className="text-[color:var(--gris-700)]">
+            {formaterDateLongue(contexte.seminaire.dateDebut)} · {formaterHeure(contexte.seminaire.dateDebut)}–
+            {formaterHeure(contexte.seminaire.dateFin)}
+            {contexte.seminaire.lieu ? ` · ${contexte.seminaire.lieu}` : ''}
+          </p>
+          {contexte.seminaire.tarif ? <p className="text-[color:var(--gris-700)]">{contexte.seminaire.tarif}</p> : null}
+        </header>
 
-      {phase === 'PENDANT' ? (
-        <>
-          <ProgrammeSeminaire modules={contexte.seminaire.modules} titreSection="Aujourd'hui" />
-          <SectionSupports supports={supports} />
-        </>
-      ) : null}
-
-      {phase === 'APRES' ? (
-        <>
-          <SectionSupports supports={supports} />
-          <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
-            <h2 className="text-[length:var(--taille-md)] mb-1">Votre avis nous intéresse</h2>
-            <p className="text-[color:var(--gris-600)] mb-3">
-              {contexte.inscription.aRepondu
-                ? "Merci d'avoir répondu à notre questionnaire d'évaluation."
-                : 'Aidez-nous à améliorer ce séminaire en répondant au questionnaire.'}
-            </p>
+        {phase === 'AVANT' ? (
+          <>
+            <ProgrammeSeminaire modules={contexte.seminaire.modules} titreSection="Programme" />
             <a
-              href="/mon-espace/questionnaire"
-              className="inline-flex min-h-[44px] items-center rounded-[var(--rayon-sm)] bg-[color:var(--couleur-accent)] px-4 text-[color:var(--couleur-accent-contraste)]"
+              href={`/s/${contexte.seminaire.codePublic}/calendrier.ics`}
+              className="flex min-h-[44px] w-full items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 py-3 text-center text-[color:var(--gris-800)]"
             >
-              {contexte.inscription.aRepondu ? 'Voir mon évaluation' : 'Répondre au questionnaire'}
+              Ajouter à mon calendrier
             </a>
-          </section>
-        </>
-      ) : null}
+            <BoutonAnnuler />
+          </>
+        ) : null}
 
-      <a
-        href="/mon-espace/messages"
-        className="min-h-[44px] rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 py-3 text-center text-[color:var(--gris-800)]"
-      >
-        Envoyer un message anonyme
-      </a>
+        {phase === 'PENDANT' ? (
+          <>
+            <ProgrammeSeminaire modules={contexte.seminaire.modules} titreSection="Aujourd'hui" />
+            <SectionSupports supports={supports} />
+          </>
+        ) : null}
 
-      <section aria-label="Vos préférences" className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
-        <h2 className="text-[length:var(--taille-md)]">Vos préférences</h2>
-        <ToggleConsentement
-          libelle="Recevoir des informations sur les prochaines formations"
-          actif={communicationsActif}
-          retirerAction={retirerCommunicationsAction}
-          autoriserAction={autoriserCommunicationsAction}
-        />
-        <ToggleConsentement
-          libelle="Partager ma présence avec l'employeur qui finance cette formation"
-          actif={partageEmployeurActif}
-          retirerAction={retirerPartageEmployeurAction}
-          autoriserAction={autoriserPartageEmployeurAction}
-        />
-      </section>
+        {phase === 'APRES' ? (
+          <>
+            <SectionSupports supports={supports} />
+            <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+              <h2 className="text-[length:var(--taille-md)] mb-1">Votre avis nous intéresse</h2>
+              <p className="mb-3 text-[color:var(--gris-700)]">
+                {contexte.inscription.aRepondu
+                  ? "Merci d'avoir répondu à notre questionnaire d'évaluation."
+                  : 'Aidez-nous à améliorer ce séminaire en répondant au questionnaire.'}
+              </p>
+              <a
+                href="/mon-espace/questionnaire"
+                className="flex min-h-[44px] w-full items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--couleur-accent)] px-4 text-[color:var(--couleur-accent-contraste)]"
+              >
+                {contexte.inscription.aRepondu ? 'Voir mon évaluation' : 'Répondre au questionnaire'}
+              </a>
+            </section>
+          </>
+        ) : null}
 
-      {autresInscriptions.length > 0 ? (
-        <section aria-label="Vos autres séminaires">
-          <h2 className="text-[length:var(--taille-md)] mb-2">Vos autres séminaires</h2>
-          <ul className="flex flex-col gap-2">
-            {autresInscriptions.map((i) => (
-              <li key={i.id} className="flex justify-between gap-2 text-[color:var(--gris-700)]">
-                <span>{i.seminaire.titre}</span>
-                <span className="text-[length:var(--taille-sm)] text-[color:var(--gris-500)]">
-                  {calculerPhaseSeminaire(i.seminaire.dateDebut, i.seminaire.dateFin) === 'AVANT'
-                    ? 'À venir'
-                    : calculerPhaseSeminaire(i.seminaire.dateDebut, i.seminaire.dateFin) === 'PENDANT'
-                      ? 'En cours'
-                      : 'Terminé'}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <a
+          href="/mon-espace/messages"
+          className="flex min-h-[44px] w-full items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 py-3 text-center text-[color:var(--gris-800)]"
+        >
+          Envoyer un message anonyme
+        </a>
+
+        <section aria-label="Vos préférences" className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+          <h2 className="text-[length:var(--taille-md)]">Vos préférences</h2>
+          <ToggleConsentement
+            libelle="Recevoir des informations sur les prochaines formations"
+            actif={communicationsActif}
+            retirerAction={retirerCommunicationsAction}
+            autoriserAction={autoriserCommunicationsAction}
+          />
+          <ToggleConsentement
+            libelle="Partager ma présence avec l'employeur qui finance cette formation"
+            actif={partageEmployeurActif}
+            retirerAction={retirerPartageEmployeurAction}
+            autoriserAction={autoriserPartageEmployeurAction}
+          />
         </section>
-      ) : null}
+
+        {autresInscriptions.length > 0 ? (
+          <section aria-label="Vos autres séminaires">
+            <h2 className="text-[length:var(--taille-md)] mb-2">Vos autres séminaires</h2>
+            <ul className="flex flex-col gap-2">
+              {autresInscriptions.map((i) => (
+                <li key={i.id} className="flex justify-between gap-2 text-[color:var(--gris-700)]">
+                  <span>{i.seminaire.titre}</span>
+                  <span className="text-[length:var(--taille-sm)] text-[color:var(--gris-500)]">
+                    {calculerPhaseSeminaire(i.seminaire.dateDebut, i.seminaire.dateFin) === 'AVANT'
+                      ? 'À venir'
+                      : calculerPhaseSeminaire(i.seminaire.dateDebut, i.seminaire.dateFin) === 'PENDANT'
+                        ? 'En cours'
+                        : 'Terminé'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </CartePublique>
+
+      <PiedDePageCabinet cabinet={contexte.seminaire.cabinet} />
     </main>
   );
 }
@@ -188,7 +203,7 @@ function SectionSupports({ supports }: { supports: { id: string; titre: string; 
     <section className="rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
       <h2 className="text-[length:var(--taille-md)] mb-1">Supports de formation</h2>
       {supports.length === 0 ? (
-        <p className="text-[color:var(--gris-600)]">Les supports de ce séminaire seront mis à votre disposition ici.</p>
+        <p className="text-[color:var(--gris-700)]">Les supports de ce séminaire seront mis à votre disposition ici.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {supports.map((support) => (

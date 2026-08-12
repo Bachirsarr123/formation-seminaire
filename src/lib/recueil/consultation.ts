@@ -16,7 +16,9 @@ import { prisma } from '../prisma';
  */
 const INCLUSION_RECUEIL_ANONYME = {
   seminaire: { select: { titre: true, codePublic: true, logoClientUrl: true } },
-  cabinet: { select: { nom: true, logoUrl: true, adresse: true, emailContact: true, telephoneContact: true } },
+  cabinet: {
+    select: { id: true, nom: true, logoUrl: true, couleurPrimaire: true, adresse: true, emailContact: true, telephoneContact: true },
+  },
   questions: { orderBy: { ordre: 'asc' as const } },
   reponses: { orderBy: { createdAt: 'asc' as const }, select: { id: true, reponses: true } },
 };

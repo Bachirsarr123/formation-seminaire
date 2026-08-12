@@ -13,7 +13,9 @@ export async function chargerRecueilPublic(codeAcces: string) {
     where: { codeAcces },
     include: {
       seminaire: { select: { titre: true, codePublic: true, logoClientUrl: true } },
-      cabinet: { select: { nom: true, logoUrl: true, adresse: true, emailContact: true, telephoneContact: true } },
+      cabinet: {
+        select: { id: true, nom: true, logoUrl: true, couleurPrimaire: true, adresse: true, emailContact: true, telephoneContact: true },
+      },
       questions: { orderBy: { ordre: 'asc' } },
     },
   });
@@ -27,7 +29,9 @@ export interface DonneesReponseRecueil {
   nom: string;
   prenom: string;
   fonction: string | null;
-  organisation: string | null;
+  // Retiré du formulaire public (reste en base, jamais renseigné depuis ce
+  // formulaire) — voir la même décision sur Participant.organisation.
+  organisation?: string | null;
   reponses: Record<string, string | string[]>;
 }
 
@@ -40,7 +44,7 @@ export async function soumettreReponseRecueil(donnees: DonneesReponseRecueil) {
       nom: donnees.nom,
       prenom: donnees.prenom,
       fonction: donnees.fonction,
-      organisation: donnees.organisation,
+      organisation: donnees.organisation ?? null,
       reponses: donnees.reponses as Prisma.InputJsonValue,
     },
   });

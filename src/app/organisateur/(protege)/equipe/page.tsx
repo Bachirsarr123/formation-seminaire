@@ -1,9 +1,11 @@
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { listerEquipe } from '@/lib/organisateur/equipe';
+import { prisma } from '@/lib/prisma';
 import { FormulaireCreerFormateur } from './formulaire-creer-formateur';
 import { BoutonDesactiver } from './bouton-desactiver';
 import { FormulaireCvFormateur } from './formulaire-cv-formateur';
-import { televerserCvAction } from './actions';
+import { FormulaireLogoCabinet } from './formulaire-logo-cabinet';
+import { televerserCvAction, televerserLogoCabinetAction } from './actions';
 
 const LIBELLE_ROLE = { ORGANISATEUR: 'Organisateur', FORMATEUR: 'Formateur' } as const;
 
@@ -12,11 +14,29 @@ const LIBELLE_ROLE = { ORGANISATEUR: 'Organisateur', FORMATEUR: 'Formateur' } as
 // de navigation lui-même est masqué côté layout pour ce rôle.
 export default async function PageEquipe() {
   const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
-  const membres = await listerEquipe(contexte.cabinetId);
+  const [membres, cabinet] = await Promise.all([
+    listerEquipe(contexte.cabinetId),
+    prisma.cabinet.findUniqueOrThrow({ where: { id: contexte.cabinetId }, select: { logoUrl: true } }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">Équipe</h1>
+
+      <section className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+        <h2 className="text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Cabinet</h2>
+        <div className="flex items-center gap-3">
+          {cabinet.logoUrl ? (
+            <span className="inline-flex h-[76px] items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-000)] px-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/cabinet-logo/${contexte.cabinetId}`} alt="" className="h-[60px] w-auto max-w-[200px] object-contain" />
+            </span>
+          ) : (
+            <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Aucun logo téléversé pour l&apos;instant.</p>
+          )}
+        </div>
+        <FormulaireLogoCabinet action={televerserLogoCabinetAction} aDejaUnLogo={cabinet.logoUrl !== null} />
+      </section>
 
       <FormulaireCreerFormateur />
 

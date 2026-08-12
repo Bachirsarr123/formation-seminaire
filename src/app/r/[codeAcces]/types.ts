@@ -2,7 +2,6 @@ export interface ValeursFormulaireRecueil {
   prenom: string;
   nom: string;
   fonction: string;
-  organisation: string;
 }
 
 export interface EtatFormulaireRecueil {

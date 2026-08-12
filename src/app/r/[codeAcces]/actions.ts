@@ -12,7 +12,6 @@ const schemaCoordonnees = z.object({
   prenom: z.string().trim().min(1, 'Merci de renseigner votre prénom.'),
   nom: z.string().trim().min(1, 'Merci de renseigner votre nom.'),
   fonction: z.string().trim(),
-  organisation: z.string().trim(),
 });
 
 function lireValeurs(formData: FormData): ValeursFormulaireRecueil {
@@ -20,7 +19,6 @@ function lireValeurs(formData: FormData): ValeursFormulaireRecueil {
     prenom: String(formData.get('prenom') ?? ''),
     nom: String(formData.get('nom') ?? ''),
     fonction: String(formData.get('fonction') ?? ''),
-    organisation: String(formData.get('organisation') ?? ''),
   };
 }
 
@@ -74,7 +72,6 @@ export async function envoyerReponseRecueilAction(
       nom: analyse.data.nom,
       prenom: analyse.data.prenom,
       fonction: analyse.data.fonction || null,
-      organisation: analyse.data.organisation || null,
       reponses,
     }),
   );

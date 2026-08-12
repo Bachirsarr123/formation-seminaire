@@ -6,6 +6,9 @@ import { resoudreContexteParticipant } from '@/lib/contexte-participant';
 import { construireOrigineRequete } from '@/lib/origine-requete';
 import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-accent';
 import { AccesIntrouvable } from '@/components/acces-introuvable';
+import { EnTeteLogos } from '@/components/en-tete-logos';
+import { CartePublique } from '@/components/carte-publique';
+import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
 import { BoutonCopier } from './bouton-copier';
 import { PurgerBrouillon } from './purger-brouillon';
 
@@ -40,43 +43,56 @@ export default async function PageConfirmation({ searchParams }: Props) {
   const jetons = deriverJetonsAccent(contexte.seminaire.cabinet.couleurPrimaire);
 
   return (
-    <main style={stylesJetonsAccent(jetons) as CSSProperties} className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-4 pb-12">
+    <main
+      style={stylesJetonsAccent(jetons) as CSSProperties}
+      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
+    >
       <PurgerBrouillon />
 
-      <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
-        {titrePourEtat(contexte.inscription.statut, situation)}
-      </h1>
+      <EnTeteLogos
+        cabinet={contexte.seminaire.cabinet}
+        codePublic={contexte.seminaire.codePublic}
+        logoClientUrl={contexte.seminaire.logoClientUrl}
+      />
 
-      {contexte.inscription.statut === 'EN_ATTENTE' ? (
-        <p className="text-[color:var(--gris-700)]">
-          Elle doit être validée par l&apos;organisateur avant confirmation définitive. Vous recevrez votre accès dès
-          que ce sera fait.
-        </p>
-      ) : (
-        <p className="text-[color:var(--gris-700)]">
-          Voici votre accès personnel — conservez-le, il vous resservira pour retrouver votre espace à tout moment.
-        </p>
-      )}
+      <CartePublique>
+        <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">
+          {titrePourEtat(contexte.inscription.statut, situation)}
+        </h1>
 
-      <div className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
-        <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">{lienPersonnel}</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <BoutonCopier lien={lienPersonnel} />
-          {/* Le SVG généré par la lib QRCode porte une largeur fixe (180) codée
-              dans son markup — un élément remplacé dans une ligne flex ne
-              rétrécit pas sous cette taille par défaut, d'où un débordement
-              horizontal à fort zoom même sur un viewport large. */}
-          {/* eslint-disable-next-line react/no-danger */}
-          <div className="[&>svg]:h-auto [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} aria-hidden="true" />
+        {contexte.inscription.statut === 'EN_ATTENTE' ? (
+          <p className="text-[color:var(--gris-700)]">
+            Elle doit être validée par l&apos;organisateur avant confirmation définitive. Vous recevrez votre accès dès
+            que ce sera fait.
+          </p>
+        ) : (
+          <p className="text-[color:var(--gris-700)]">
+            Voici votre accès personnel — conservez-le, il vous resservira pour retrouver votre espace à tout moment.
+          </p>
+        )}
+
+        <div className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
+          <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">{lienPersonnel}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <BoutonCopier lien={lienPersonnel} />
+            {/* Le SVG généré par la lib QRCode porte une largeur fixe (180) codée
+                dans son markup — un élément remplacé dans une ligne flex ne
+                rétrécit pas sous cette taille par défaut, d'où un débordement
+                horizontal à fort zoom même sur un viewport large. */}
+            {/* eslint-disable-next-line react/no-danger */}
+            <div className="[&>svg]:h-auto [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} aria-hidden="true" />
+          </div>
         </div>
-      </div>
 
-      <a
-        href={`/s/${contexte.seminaire.codePublic}/calendrier.ics`}
-        className="min-h-[44px] rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 py-3 text-center text-[color:var(--gris-800)]"
-      >
-        Ajouter à mon calendrier
-      </a>
+        <a
+          href={`/s/${contexte.seminaire.codePublic}/calendrier.ics`}
+          className="flex min-h-[44px] w-full items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-100)] px-4 py-3 text-center text-[color:var(--gris-800)]"
+        >
+          Ajouter à mon calendrier
+        </a>
+      </CartePublique>
+
+      <PiedDePageCabinet cabinet={contexte.seminaire.cabinet} />
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { genererJetonFormulaire } from '@/lib/anti-spam';
 import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-accent';
 import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
 import { EnTeteLogos } from '@/components/en-tete-logos';
+import { CartePublique } from '@/components/carte-publique';
 import { envoyerReponseRecueilAction } from './actions';
 import { FormulaireRecueil } from './formulaire-recueil';
 
@@ -25,29 +26,34 @@ export default async function PageRecueil({ params }: Props) {
     );
   }
 
-  const jetons = deriverJetonsAccent(null);
+  const jetons = deriverJetonsAccent(recueil.cabinet.couleurPrimaire);
   const jetonFormulaire = genererJetonFormulaire();
 
   return (
-    <main style={stylesJetonsAccent(jetons) as CSSProperties} className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-4 pb-12">
+    <main
+      style={stylesJetonsAccent(jetons) as CSSProperties}
+      className="mx-auto flex min-h-screen max-w-lg flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
+    >
       <EnTeteLogos
         cabinet={recueil.cabinet}
         codePublic={recueil.seminaire.codePublic}
         logoClientUrl={recueil.seminaire.logoClientUrl}
       />
 
-      <header className="flex flex-col gap-2">
-        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Séminaire de formation :</p>
-        <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{recueil.seminaire.titre}</h1>
-        <p className="text-[length:var(--taille-md)] font-semibold uppercase text-[color:var(--gris-800)]">{recueil.titre}</p>
-        <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">{recueil.description}</p>
-      </header>
+      <CartePublique>
+        <header className="flex flex-col gap-2">
+          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">Séminaire de formation :</p>
+          <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{recueil.seminaire.titre}</h1>
+          <p className="text-[length:var(--taille-md)] font-semibold uppercase text-[color:var(--gris-800)]">{recueil.titre}</p>
+          <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">{recueil.description}</p>
+        </header>
 
-      <FormulaireRecueil
-        action={envoyerReponseRecueilAction.bind(null, codeAcces)}
-        jetonFormulaire={jetonFormulaire}
-        questions={recueil.questions}
-      />
+        <FormulaireRecueil
+          action={envoyerReponseRecueilAction.bind(null, codeAcces)}
+          jetonFormulaire={jetonFormulaire}
+          questions={recueil.questions}
+        />
+      </CartePublique>
 
       <PiedDePageCabinet cabinet={recueil.cabinet} />
     </main>

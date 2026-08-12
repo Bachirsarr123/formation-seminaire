@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { resoudreContexteLienFormateur } from '@/lib/formateur-lien';
 import { listerInscriptionsSeminaire } from '@/lib/organisateur/participants';
 import { obtenirResultatsSeminaire } from '@/lib/organisateur/resultats';
@@ -5,8 +6,11 @@ import { chargerReponsesRecueilParSeminaire } from '@/lib/recueil/consultation';
 import { libellesReponseRecueil } from '@/lib/recueil/options';
 import { LIBELLE_MODALITE } from '@/lib/libelles';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
+import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-accent';
 import { ResultatsSeminaire } from '@/components/resultats-seminaire';
 import { EnTeteLogos } from '@/components/en-tete-logos';
+import { CartePublique } from '@/components/carte-publique';
+import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
 
 interface Props {
   params: Promise<{ codeFormateur: string }>;
@@ -42,121 +46,130 @@ export default async function PageLienFormateur({ params }: Props) {
     chargerReponsesRecueilParSeminaire(seminaire.id),
   ]);
 
+  const jetons = deriverJetonsAccent(contexte.cabinet.couleurPrimaire);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 pb-12">
+    <main
+      style={stylesJetonsAccent(jetons) as CSSProperties}
+      className="mx-auto flex min-h-screen max-w-2xl flex-col gap-[var(--espace-8)] bg-[color:var(--gris-050)] p-4 pb-12"
+    >
       <EnTeteLogos cabinet={contexte.cabinet} codePublic={seminaire.codePublic} logoClientUrl={seminaire.logoClientUrl} />
 
-      <header className="flex flex-col gap-1">
-        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-          Bonjour {contexte.formateur.prenom} {contexte.formateur.nom},
-        </p>
-        <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
-        <p className="text-[color:var(--gris-700)]">
-          {formaterDateLongue(seminaire.dateDebut)} · {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
-          {seminaire.lieu ? ` · ${seminaire.lieu}` : ''} · {LIBELLE_MODALITE[seminaire.modalite]}
-        </p>
-        {contexte.formateur.cvUrl ? (
-          <a href={`/f/${codeFormateur}/cv`} target="_blank" rel="noreferrer" className="w-fit text-[length:var(--taille-sm)] underline">
-            Voir mon CV
-          </a>
-        ) : null}
-      </header>
+      <CartePublique>
+        <header className="flex flex-col gap-1">
+          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
+            Bonjour {contexte.formateur.prenom} {contexte.formateur.nom},
+          </p>
+          <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{seminaire.titre}</h1>
+          <p className="text-[color:var(--gris-700)]">
+            {formaterDateLongue(seminaire.dateDebut)} · {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
+            {seminaire.lieu ? ` · ${seminaire.lieu}` : ''} · {LIBELLE_MODALITE[seminaire.modalite]}
+          </p>
+          {contexte.formateur.cvUrl ? (
+            <a href={`/f/${codeFormateur}/cv`} target="_blank" rel="noreferrer" className="w-fit text-[length:var(--taille-sm)] underline">
+              Voir mon CV
+            </a>
+          ) : null}
+        </header>
 
-      <a
-        href={`/f/${codeFormateur}/notations`}
-        className="inline-flex min-h-[44px] w-fit items-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-800)] px-4 text-[color:var(--gris-000)]"
-      >
-        Noter les participants
-      </a>
+        <a
+          href={`/f/${codeFormateur}/notations`}
+          className="flex min-h-[44px] w-full items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--couleur-accent)] px-4 text-[color:var(--couleur-accent-contraste)]"
+        >
+          Noter les participants
+        </a>
 
-      <section aria-label="Participants">
-        <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">
-          Participants {inscriptions ? <span className="chiffre">({inscriptions.length})</span> : null}
-        </h2>
-        {!inscriptions || inscriptions.length === 0 ? (
-          <p className="text-[color:var(--gris-700)]">Aucun participant confirmé pour l&apos;instant.</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {inscriptions.map((i) => (
-              <li key={i.id} className="rounded-[var(--rayon-sm)] bg-[color:var(--gris-050)] p-3">
-                <p className="text-[color:var(--gris-900)]">
-                  {i.participant.prenom} {i.participant.nom}
-                </p>
-                {i.participant.fonction || i.participant.organisation ? (
-                  <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-                    {[i.participant.fonction, i.participant.organisation].filter(Boolean).join(' — ')}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {recueil ? (
-        <section aria-label="Recueil de besoins">
+        <section aria-label="Participants">
           <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">
-            Recueil de besoins{' '}
-            <span className="chiffre text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-              ({recueil.reponses.length} réponse{recueil.reponses.length > 1 ? 's' : ''})
-            </span>
+            Participants {inscriptions ? <span className="chiffre">({inscriptions.length})</span> : null}
           </h2>
-          {recueil.reponses.length === 0 ? (
-            <p className="text-[color:var(--gris-700)]">Aucune réponse pour l&apos;instant.</p>
+          {!inscriptions || inscriptions.length === 0 ? (
+            <p className="text-[color:var(--gris-700)]">Aucun participant confirmé pour l&apos;instant.</p>
           ) : (
-            <div className="flex flex-col gap-6">
-              {recueil.reponses.map((reponse, index) => {
-                const brut = (reponse.reponses ?? {}) as Record<string, string | string[]>;
-
-                return (
-                  <article key={reponse.id} className="flex flex-col gap-3">
-                    {/* Volontairement sans identité (ni nom, ni fonction, ni
-                        organisation) : voir lib/recueil/consultation.ts, qui
-                        exclut déjà ces colonnes de la requête elle-même —
-                        même règle que /rc/{codeConsultation}. */}
-                    <p className="text-[length:var(--taille-md)] font-semibold text-[color:var(--gris-900)]">
-                      Réponse {index + 1}
+            <ul className="flex flex-col gap-2">
+              {inscriptions.map((i) => (
+                <li key={i.id} className="rounded-[var(--rayon-sm)] bg-[color:var(--gris-050)] p-3">
+                  <p className="text-[color:var(--gris-900)]">
+                    {i.participant.prenom} {i.participant.nom}
+                  </p>
+                  {i.participant.fonction || i.participant.organisation ? (
+                    <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
+                      {[i.participant.fonction, i.participant.organisation].filter(Boolean).join(' — ')}
                     </p>
-                    <ol className="flex flex-col gap-3">
-                      {recueil.questions.map((question, qIndex) => {
-                        const libelles = libellesReponseRecueil(question, brut[question.id]);
-                        if (libelles.length === 0) return null;
-
-                        return (
-                          <li key={question.id}>
-                            <p className="text-[color:var(--gris-800)]">
-                              {qIndex + 1}. {question.intitule}
-                            </p>
-                            {question.type === 'CHOIX_MULTIPLE' ? (
-                              <ul className="ml-4 list-disc text-[color:var(--gris-700)]">
-                                {libelles.map((l) => (
-                                  <li key={l}>{l}</li>
-                                ))}
-                              </ul>
-                            ) : question.type === 'TEXTE_LIBRE' ? (
-                              <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">« {libelles[0]} »</p>
-                            ) : (
-                              <p className="text-[color:var(--gris-700)]">{libelles[0]}</p>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ol>
-                    {index < recueil.reponses.length - 1 ? <hr className="border-[color:var(--gris-100)]" /> : null}
-                  </article>
-                );
-              })}
-            </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           )}
         </section>
-      ) : null}
 
-      {resultats ? (
-        <section aria-label="Résultats d'évaluation">
-          <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Résultats d&apos;évaluation</h2>
-          <ResultatsSeminaire vue={resultats} />
-        </section>
-      ) : null}
+        {recueil ? (
+          <section aria-label="Recueil de besoins">
+            <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">
+              Recueil de besoins{' '}
+              <span className="chiffre text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
+                ({recueil.reponses.length} réponse{recueil.reponses.length > 1 ? 's' : ''})
+              </span>
+            </h2>
+            {recueil.reponses.length === 0 ? (
+              <p className="text-[color:var(--gris-700)]">Aucune réponse pour l&apos;instant.</p>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {recueil.reponses.map((reponse, index) => {
+                  const brut = (reponse.reponses ?? {}) as Record<string, string | string[]>;
+
+                  return (
+                    <article key={reponse.id} className="flex flex-col gap-3">
+                      {/* Volontairement sans identité (ni nom, ni fonction, ni
+                          organisation) : voir lib/recueil/consultation.ts, qui
+                          exclut déjà ces colonnes de la requête elle-même —
+                          même règle que /rc/{codeConsultation}. */}
+                      <p className="text-[length:var(--taille-md)] font-semibold text-[color:var(--gris-900)]">
+                        Réponse {index + 1}
+                      </p>
+                      <ol className="flex flex-col gap-3">
+                        {recueil.questions.map((question, qIndex) => {
+                          const libelles = libellesReponseRecueil(question, brut[question.id]);
+                          if (libelles.length === 0) return null;
+
+                          return (
+                            <li key={question.id}>
+                              <p className="text-[color:var(--gris-800)]">
+                                {qIndex + 1}. {question.intitule}
+                              </p>
+                              {question.type === 'CHOIX_MULTIPLE' ? (
+                                <ul className="ml-4 list-disc text-[color:var(--gris-700)]">
+                                  {libelles.map((l) => (
+                                    <li key={l}>{l}</li>
+                                  ))}
+                                </ul>
+                              ) : question.type === 'TEXTE_LIBRE' ? (
+                                <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">« {libelles[0]} »</p>
+                              ) : (
+                                <p className="text-[color:var(--gris-700)]">{libelles[0]}</p>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ol>
+                      {index < recueil.reponses.length - 1 ? <hr className="border-[color:var(--gris-100)]" /> : null}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {resultats ? (
+          <section aria-label="Résultats d'évaluation">
+            <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Résultats d&apos;évaluation</h2>
+            <ResultatsSeminaire vue={resultats} />
+          </section>
+        ) : null}
+      </CartePublique>
+
+      <PiedDePageCabinet cabinet={contexte.cabinet} />
     </main>
   );
 }
