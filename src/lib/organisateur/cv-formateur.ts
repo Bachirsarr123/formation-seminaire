@@ -1,6 +1,6 @@
 import 'server-only';
 import { prisma } from '../prisma';
-import { enregistrerFichierSupport, lireFichierSupport } from './stockage-supports';
+import { enregistrerFichierSupport, lireFichierSupportOuNull } from './stockage-supports';
 
 // CV formateur (Utilisateur.cvUrl) — même adaptateur de stockage local que
 // les supports de cours et le logo client, dossier propre au compte
@@ -46,6 +46,11 @@ export interface FichierCv {
  * `cvUrl` en base, chemin de stockage) : le nom présenté au téléchargement
  * est dérivé de l'identité du formateur, pas du nom de fichier fourni par
  * l'organisateur au moment de l'upload.
+ *
+ * `null` aussi bien si aucun CV n'a jamais été téléversé que si la ligne en
+ * base référence un fichier disparu du disque (plan gratuit Render, disque
+ * éphémère — voir stockage-supports.ts) : les deux cas doivent rendre la
+ * même réponse « introuvable » à l'appelant, jamais une erreur brute.
  */
 export async function obtenirFichierCv(utilisateurId: string): Promise<FichierCv | null> {
   const utilisateur = await prisma.utilisateur.findUnique({
@@ -54,6 +59,7 @@ export async function obtenirFichierCv(utilisateurId: string): Promise<FichierCv
   });
   if (!utilisateur?.cvUrl) return null;
 
-  const contenu = await lireFichierSupport(utilisateur.cvUrl);
+  const contenu = await lireFichierSupportOuNull(utilisateur.cvUrl);
+  if (!contenu) return null;
   return { nomFichier: `CV - ${utilisateur.prenom} ${utilisateur.nom}.pdf`, contenu };
 }

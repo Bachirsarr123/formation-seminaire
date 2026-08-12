@@ -29,7 +29,11 @@ export default async function PageEquipe() {
           {cabinet.logoUrl ? (
             <span className="inline-flex h-[76px] items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-000)] px-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/cabinet-logo/${contexte.cabinetId}`} alt="" className="h-[60px] w-auto max-w-[200px] object-contain" />
+              <img
+                src={`/cabinet-logo/${contexte.cabinetId}?v=${encodeURIComponent(cabinet.logoUrl)}`}
+                alt=""
+                className="h-[60px] w-auto max-w-[200px] object-contain"
+              />
             </span>
           ) : (
             <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Aucun logo téléversé pour l&apos;instant.</p>

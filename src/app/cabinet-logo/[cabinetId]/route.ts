@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { lireFichierSupport } from '@/lib/organisateur/stockage-supports';
+import { lireFichierSupportOuNull } from '@/lib/organisateur/stockage-supports';
 
 // Même table extension → type MIME que /s/{codePublic}/logo-client (aucune
 // colonne dédiée, `logoUrl` ne porte que le chemin de stockage).
@@ -26,9 +26,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cab
     return NextResponse.json({ error: 'Introuvable.' }, { status: 404 });
   }
 
+  // Ligne en base présente, mais fichier disparu du disque éphémère (plan
+  // gratuit Render, redéploiement) : même réponse « introuvable » qu'un
+  // logo jamais téléversé, jamais une erreur brute non gérée.
+  const contenu = await lireFichierSupportOuNull(cabinet.logoUrl);
+  if (!contenu) {
+    return NextResponse.json({ error: 'Introuvable.' }, { status: 404 });
+  }
+
   const extension = cabinet.logoUrl.slice(cabinet.logoUrl.lastIndexOf('.'));
   const typeMime = TYPE_MIME_PAR_EXTENSION[extension] ?? 'application/octet-stream';
-  const contenu = await lireFichierSupport(cabinet.logoUrl);
 
   return new NextResponse(new Uint8Array(contenu), {
     status: 200,

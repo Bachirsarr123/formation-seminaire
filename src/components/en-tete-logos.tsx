@@ -28,13 +28,20 @@ export function EnTeteLogos({ cabinet, codePublic, logoClientUrl }: Props) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--rayon-lg)] bg-[color:var(--couleur-accent)] px-4 py-3">
       {cabinet.logoUrl ? (
-        <CadreLogo src={`/cabinet-logo/${cabinet.id}`} alt={cabinet.nom} />
+        // `?v=` : chemin de stockage lui-même comme témoin de version — les
+        // routes /cabinet-logo et /s/.../logo-client sont mises en cache 1h
+        // (voir leurs headers), mais leur URL ne change pas quand
+        // l'organisateur remplace le fichier. Sans ce paramètre, un logo
+        // remplacé resterait caché avec l'ancien jusqu'à expiration.
+        <CadreLogo src={`/cabinet-logo/${cabinet.id}?v=${encodeURIComponent(cabinet.logoUrl)}`} alt={cabinet.nom} />
       ) : (
         <span className="text-[length:var(--taille-sm)] font-medium text-[color:var(--couleur-accent-contraste)]">
           {cabinet.nom}
         </span>
       )}
-      {logoClientUrl ? <CadreLogo src={`/s/${codePublic}/logo-client`} alt="" /> : null}
+      {logoClientUrl ? (
+        <CadreLogo src={`/s/${codePublic}/logo-client?v=${encodeURIComponent(logoClientUrl)}`} alt="" />
+      ) : null}
     </header>
   );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { lireFichierSupport } from '@/lib/organisateur/stockage-supports';
+import { lireFichierSupportOuNull } from '@/lib/organisateur/stockage-supports';
 
 // Seule l'extension (choisie par extensionDepuisNomFichier au moment de
 // l'upload, lib/organisateur/stockage-supports.ts) permet de retrouver le
@@ -29,9 +29,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     return NextResponse.json({ error: 'Introuvable.' }, { status: 404 });
   }
 
+  // Ligne en base présente, mais fichier disparu du disque éphémère (plan
+  // gratuit Render, redéploiement) : même réponse « introuvable » qu'un
+  // logo jamais téléversé, jamais une erreur brute non gérée.
+  const contenu = await lireFichierSupportOuNull(seminaire.logoClientUrl);
+  if (!contenu) {
+    return NextResponse.json({ error: 'Introuvable.' }, { status: 404 });
+  }
+
   const extension = seminaire.logoClientUrl.slice(seminaire.logoClientUrl.lastIndexOf('.'));
   const typeMime = TYPE_MIME_PAR_EXTENSION[extension] ?? 'application/octet-stream';
-  const contenu = await lireFichierSupport(seminaire.logoClientUrl);
 
   return new NextResponse(new Uint8Array(contenu), {
     status: 200,

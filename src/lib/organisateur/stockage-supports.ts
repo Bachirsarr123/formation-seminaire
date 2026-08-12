@@ -55,3 +55,24 @@ export async function enregistrerFichierSupport(
 export async function lireFichierSupport(urlStockage: string): Promise<Buffer> {
   return readFile(path.join(DOSSIER_UPLOADS, urlStockage));
 }
+
+/**
+ * Même chose que lireFichierSupport, mais renvoie `null` plutôt que de
+ * lever si le fichier est absent du disque (ENOENT) — cas concret et déjà
+ * documenté (voir commentaire d'en-tête) sur le plan gratuit Render : une
+ * ligne en base (`logoUrl`/`logoClientUrl`/`cvUrl`...) peut survivre à un
+ * redéploiement alors que le fichier qu'elle référence, lui, a disparu avec
+ * le disque éphémère. Les routes qui SERVENT un logo/CV directement au
+ * navigateur (donc sans page d'erreur applicative pour absorber le cas)
+ * utilisent cette version pour répondre proprement 404 plutôt que de
+ * planter avec une erreur Node brute. Toute autre erreur (permissions,
+ * disque plein...) continue de se propager normalement.
+ */
+export async function lireFichierSupportOuNull(urlStockage: string): Promise<Buffer | null> {
+  try {
+    return await lireFichierSupport(urlStockage);
+  } catch (erreur) {
+    if (erreur instanceof Error && 'code' in erreur && erreur.code === 'ENOENT') return null;
+    throw erreur;
+  }
+}

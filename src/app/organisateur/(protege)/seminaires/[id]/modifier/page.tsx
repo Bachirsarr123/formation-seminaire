@@ -39,7 +39,7 @@ export default async function PageModifierSeminaire({ params }: Props) {
             <span className="inline-flex h-[76px] items-center justify-center rounded-[var(--rayon-sm)] bg-[color:var(--gris-000)] px-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`/s/${seminaire.codePublic}/logo-client`}
+                src={`/s/${seminaire.codePublic}/logo-client?v=${encodeURIComponent(seminaire.logoClientUrl)}`}
                 alt=""
                 className="h-[60px] w-auto max-w-[200px] object-contain"
               />

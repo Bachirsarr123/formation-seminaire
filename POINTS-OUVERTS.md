@@ -151,35 +151,61 @@ perdu. Non traité volontairement : le prompt ne demandait que la
 désactivation, pas la protection du dernier compte actif — à réévaluer si ce
 scénario se présente réellement en usage.
 
-## ⚠️ Stockage des supports de cours : disque local, perdu à chaque redéploiement sur le plan gratuit Render
+## ⚠️ Stockage des fichiers téléversés : disque local, perdu à chaque redéploiement sur le plan gratuit Render
 
-`lib/organisateur/stockage-supports.ts` écrit les fichiers téléversés
-(`/organisateur/seminaires/[id]/supports`) dans un dossier `uploads/` à la
-racine du conteneur — aucun service de stockage externe (S3 ou équivalent)
-n'est configuré pour ce lot, conformément à la consigne ("si aucun service
-n'est configuré, les fichiers sont stockés localement... fonctionnel pour la
-démo").
+`lib/organisateur/stockage-supports.ts` écrit tous les fichiers téléversés
+dans un dossier `uploads/` à la racine du conteneur — aucun service de
+stockage externe (S3 ou équivalent) n'est configuré, conformément à la
+consigne d'origine ("si aucun service n'est configuré, les fichiers sont
+stockés localement... fonctionnel pour la démo"). Cet adaptateur unique sert
+désormais **quatre fonctionnalités**, pas seulement les supports de cours :
+supports de cours (`SupportCours.urlStockage`), logo du cabinet
+(`Cabinet.logoUrl`), logo de l'entreprise cliente
+(`Seminaire.logoClientUrl`), CV formateur (`Utilisateur.cvUrl`) — les trois
+derniers ajoutés dans un lot ultérieur, sans jamais changer l'adaptateur
+lui-même.
 
 **Le plan gratuit Render n'offre pas de disque persistant** : ce dossier vit
 dans le système de fichiers éphémère du conteneur. Les fichiers survivent
 aux redémarrages normaux du même conteneur, mais **sont perdus à chaque
 nouveau déploiement** (`git push`, changement de configuration...) — la ligne
-`SupportCours` reste en base (donc visible dans la liste), mais son
-téléchargement échouera (fichier introuvable sur le nouveau conteneur).
+en base (`SupportCours`, `Cabinet.logoUrl`, `Seminaire.logoClientUrl`,
+`Utilisateur.cvUrl`) survit, donc reste visible/référencée dans l'écran
+correspondant, mais le fichier qu'elle pointe est introuvable sur le nouveau
+conteneur. **Signalé en usage réel** (lot logos/CV) : un logo cabinet
+téléversé juste avant un déploiement suivant disparaît de l'affichage public
+sans action de l'organisateur — pas un bug de logique applicative, la ligne
+en base est intacte, seul le fichier physique a été perdu par
+l'infrastructure.
 
-**Non corrigé volontairement** dans ce lot : corriger nécessiterait soit un
-disque persistant Render (plan payant), soit un adaptateur S3 (ou
-compatible) — les deux sont hors budget/temps de ce lot, et le prompt
-autorisait explicitement le repli local avec cet avertissement. L'adaptateur
-est isolé (`stockage-supports.ts`, deux fonctions : `enregistrerFichierSupport`/
-`lireFichierSupport`) pour qu'un futur remplacement par S3 ne touche aucun
-appelant.
+**Corrigé dans ce même lot** : les routes qui SERVENT ces fichiers au
+navigateur (`/cabinet-logo/{cabinetId}`, `/s/{codePublic}/logo-client`,
+`/s/{codePublic}/formateurs/{utilisateurId}/cv`, `/f/{codeFormateur}/cv`,
+`/organisateur/equipe/{utilisateurId}/cv`) plantaient auparavant avec une
+erreur Node brute (`ENOENT` non interceptée) dans ce cas précis, au lieu de
+répondre proprement 404 comme pour un fichier jamais téléversé — corrigé via
+`lireFichierSupportOuNull` (stockage-supports.ts), qui intercepte
+spécifiquement ce cas. Le symptôme visible passe donc d'un logo/CV cassé
+(erreur brute) à un logo/CV simplement absent (comme s'il n'avait jamais été
+téléversé) — un vrai correctif de robustesse, mais qui ne résout PAS la
+perte du fichier elle-même : l'organisateur doit encore re-téléverser après
+chaque déploiement tant que ce point reste ouvert.
+
+**Non corrigé volontairement** (perte du fichier elle-même) : corriger
+nécessiterait soit un disque persistant Render (plan payant), soit un
+adaptateur S3 (ou compatible) — les deux sont hors budget/temps de ce lot,
+et le prompt d'origine autorisait explicitement le repli local avec cet
+avertissement. L'adaptateur reste isolé (`stockage-supports.ts`, deux
+fonctions : `enregistrerFichierSupport`/`lireFichierSupport`) pour qu'un
+futur remplacement par S3 ne touche aucun appelant, quelle que soit la
+fonctionnalité.
 
 **À faire avant un usage réel en production** : brancher un disque
 persistant Render sur `uploads/`, ou écrire un adaptateur S3 derrière la même
-interface — et prévenir les organisateurs que les supports actuellement
-téléversés devront être re-téléversés une fois la bascule faite (les lignes
-`SupportCours` déjà en base ne pointeront plus vers un fichier existant).
+interface — et prévenir les organisateurs que tout logo/CV/support
+actuellement téléversé devra être re-téléversé une fois la bascule faite
+(les lignes en base déjà existantes ne pointeront plus vers un fichier
+existant).
 
 ## Lot messages anonymes : terminé (migration, routes, tests)
 
