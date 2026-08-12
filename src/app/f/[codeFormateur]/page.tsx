@@ -6,6 +6,7 @@ import { libellesReponseRecueil } from '@/lib/recueil/options';
 import { LIBELLE_MODALITE } from '@/lib/libelles';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import { ResultatsSeminaire } from '@/components/resultats-seminaire';
+import { EnTeteLogos } from '@/components/en-tete-logos';
 
 interface Props {
   params: Promise<{ codeFormateur: string }>;
@@ -43,6 +44,8 @@ export default async function PageLienFormateur({ params }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 pb-12">
+      <EnTeteLogos cabinet={contexte.cabinet} codePublic={seminaire.codePublic} logoClientUrl={seminaire.logoClientUrl} />
+
       <header className="flex flex-col gap-1">
         <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
           Bonjour {contexte.formateur.prenom} {contexte.formateur.nom},
@@ -52,6 +55,11 @@ export default async function PageLienFormateur({ params }: Props) {
           {formaterDateLongue(seminaire.dateDebut)} · {formaterHeure(seminaire.dateDebut)}–{formaterHeure(seminaire.dateFin)}
           {seminaire.lieu ? ` · ${seminaire.lieu}` : ''} · {LIBELLE_MODALITE[seminaire.modalite]}
         </p>
+        {contexte.formateur.cvUrl ? (
+          <a href={`/f/${codeFormateur}/cv`} target="_blank" rel="noreferrer" className="w-fit text-[length:var(--taille-sm)] underline">
+            Voir mon CV
+          </a>
+        ) : null}
       </header>
 
       <a

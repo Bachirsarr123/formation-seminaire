@@ -22,6 +22,7 @@ export interface MembreEquipe {
   email: string;
   role: RoleUtilisateur;
   actif: boolean;
+  cvUrl: string | null;
 }
 
 // email est unique GLOBALEMENT (schema.prisma : Utilisateur.email @unique,
@@ -55,7 +56,7 @@ export class AutoDesactivationError extends Error {
 export async function listerEquipe(cabinetId: string): Promise<MembreEquipe[]> {
   return prisma.utilisateur.findMany({
     where: { cabinetId },
-    select: { id: true, nom: true, prenom: true, email: true, role: true, actif: true },
+    select: { id: true, nom: true, prenom: true, email: true, role: true, actif: true, cvUrl: true },
     orderBy: [{ actif: 'desc' }, { role: 'asc' }, { nom: 'asc' }, { prenom: 'asc' }],
   });
 }

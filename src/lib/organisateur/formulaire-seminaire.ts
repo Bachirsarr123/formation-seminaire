@@ -35,12 +35,6 @@ export function analyserFormulaireSeminaire(formData: FormData): ResultatAnalyse
   const dureeHeures = Number(formData.get('dureeHeures'));
   if (!Number.isFinite(dureeHeures) || dureeHeures <= 0) return { erreur: 'La durée doit être un nombre positif.' };
 
-  const capaciteBrut = String(formData.get('capaciteMax') ?? '').trim();
-  const capaciteMax = capaciteBrut === '' ? null : Number(capaciteBrut);
-  if (capaciteMax !== null && (!Number.isFinite(capaciteMax) || capaciteMax < 0 || !Number.isInteger(capaciteMax))) {
-    return { erreur: 'La capacité doit être un entier positif, ou vide (illimitée).' };
-  }
-
   const seuilBrut = formData.get('seuilAnonymat');
   const seuilAnonymat = seuilBrut === null || seuilBrut === '' ? 5 : Number(seuilBrut);
   if (!Number.isFinite(seuilAnonymat) || seuilAnonymat < 1 || !Number.isInteger(seuilAnonymat)) {
@@ -71,9 +65,9 @@ export function analyserFormulaireSeminaire(formData: FormData): ResultatAnalyse
       dateDebut,
       dateFin,
       lieu: String(formData.get('lieu') ?? '').trim() || null,
+      tarif: String(formData.get('tarif') ?? '').trim() || null,
       modalite: modalite as Modalite,
       dureeHeures,
-      capaciteMax,
       inscriptionOuverte: formData.get('inscriptionOuverte') === 'on',
       validationRequise: formData.get('validationRequise') === 'on',
       seuilAnonymat,

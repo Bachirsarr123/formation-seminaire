@@ -23,12 +23,6 @@ export class InscriptionsFermeesError extends Error {
     this.name = 'InscriptionsFermeesError';
   }
 }
-export class SeminaireCompletError extends Error {
-  constructor() {
-    super('Ce séminaire est complet.');
-    this.name = 'SeminaireCompletError';
-  }
-}
 
 interface TraiterInscriptionPubliqueParams {
   seminaireId: string;
@@ -62,10 +56,9 @@ interface ResultatInscriptionPublique {
  * ci-dessous sont une défense en profondeur contre un appel direct de
  * l'action (curl, requête rejouée), pas la seule barrière.
  *
- * La vérification de jauge et l'upsert d'inscription se font dans UNE seule
- * transaction, avec un verrou explicite sur la ligne `seminaire` : sans lui,
- * deux inscriptions concurrentes pourraient toutes deux lire un compte sous
- * la capacité et obtenir simultanément la dernière place.
+ * Aucune jauge de places : le verrou explicite sur la ligne `seminaire` sert
+ * uniquement à sérialiser l'upsert d'inscription lui-même (éviter deux lignes
+ * concurrentes pour le même couple séminaire/participant), pas une capacité.
  */
 export async function traiterInscriptionPublique(
   params: TraiterInscriptionPubliqueParams,
@@ -116,14 +109,6 @@ export async function traiterInscriptionPublique(
         dateFinSeminaire: seminaire.dateFin,
         situation: 'dejaActive' as const,
       };
-    }
-
-    // Nouvelle inscription ou réactivation depuis ANNULEE : ça consomme une place.
-    const occupees = await tx.inscription.count({
-      where: { seminaireId: seminaire.id, statut: { in: [StatutInscription.CONFIRMEE, StatutInscription.EN_ATTENTE] } },
-    });
-    if (seminaire.capaciteMax !== null && occupees >= seminaire.capaciteMax) {
-      throw new SeminaireCompletError();
     }
 
     const statutCible = seminaire.validationRequise ? StatutInscription.EN_ATTENTE : StatutInscription.CONFIRMEE;
@@ -184,13 +169,6 @@ export async function reactiverInscription(params: {
     }
     if (!seminaire.inscriptionOuverte) {
       throw new InscriptionsFermeesError();
-    }
-
-    const occupees = await tx.inscription.count({
-      where: { seminaireId: seminaire.id, statut: { in: [StatutInscription.CONFIRMEE, StatutInscription.EN_ATTENTE] } },
-    });
-    if (seminaire.capaciteMax !== null && occupees >= seminaire.capaciteMax) {
-      throw new SeminaireCompletError();
     }
 
     const statutCible = seminaire.validationRequise ? StatutInscription.EN_ATTENTE : StatutInscription.CONFIRMEE;

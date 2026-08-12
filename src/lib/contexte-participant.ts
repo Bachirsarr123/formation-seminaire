@@ -23,10 +23,12 @@ export interface ContexteParticipant {
     dateDebut: Date;
     dateFin: Date;
     lieu: string | null;
+    tarif: string | null;
     modalite: string;
     statut: string;
     modules: { id: string; titre: string; dureeMinutes: number; ordre: number }[];
     cabinet: { nom: string; logoUrl: string | null; couleurPrimaire: string | null };
+    logoClientUrl: string | null;
   };
 }
 
@@ -71,11 +73,13 @@ export const resoudreContexteParticipant = cache(
             dateDebut: true,
             dateFin: true,
             lieu: true,
+            tarif: true,
             modalite: true,
             statut: true,
             supprimeLe: true,
             modules: { select: { id: true, titre: true, dureeMinutes: true, ordre: true }, orderBy: { ordre: 'asc' } },
             cabinet: { select: { nom: true, logoUrl: true, couleurPrimaire: true } },
+            logoClientUrl: true,
           },
         },
       },
@@ -101,10 +105,12 @@ export const resoudreContexteParticipant = cache(
         dateDebut: inscription.seminaire.dateDebut,
         dateFin: inscription.seminaire.dateFin,
         lieu: inscription.seminaire.lieu,
+        tarif: inscription.seminaire.tarif,
         modalite: inscription.seminaire.modalite,
         statut: inscription.seminaire.statut,
         modules: inscription.seminaire.modules,
         cabinet: inscription.seminaire.cabinet,
+        logoClientUrl: inscription.seminaire.logoClientUrl,
       },
     };
   },

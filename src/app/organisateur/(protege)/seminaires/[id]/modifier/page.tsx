@@ -40,14 +40,16 @@ export default async function PageModifierSeminaire({ params }: Props) {
           dateDebut: seminaire.dateDebut,
           dateFin: seminaire.dateFin,
           lieu: seminaire.lieu,
+          tarif: seminaire.tarif,
           modalite: seminaire.modalite,
           dureeHeures: seminaire.dureeHeures,
-          capaciteMax: seminaire.capaciteMax,
           inscriptionOuverte: seminaire.inscriptionOuverte,
           validationRequise: seminaire.validationRequise,
           seuilAnonymat: seminaire.seuilAnonymat,
           modules: seminaire.modules.map((m) => ({ titre: m.titre, dureeMinutes: m.dureeMinutes })),
           formateurs: seminaire.formateurs.map((f) => ({ utilisateurId: f.utilisateurId, roleFormateur: f.roleFormateur })),
+          codePublic: seminaire.codePublic,
+          logoClientUrl: seminaire.logoClientUrl,
         }}
       />
     </div>

@@ -23,7 +23,6 @@ describe('analyserFormulaireSeminaire', () => {
       titre: 'Séminaire test',
       modalite: 'PRESENTIEL',
       dureeHeures: 7,
-      capaciteMax: null,
       seuilAnonymat: 5,
       modules: [],
       formateurs: [],
@@ -48,10 +47,10 @@ describe('analyserFormulaireSeminaire', () => {
     expect(analyserFormulaireSeminaire(fd(champs)).erreur).toBeTruthy();
   });
 
-  it('capacité vide devient null (illimitée), capacité négative refusée', () => {
-    expect(analyserFormulaireSeminaire(fd(CHAMPS_VALIDES)).donnees!.capaciteMax).toBeNull();
-    const resultat = analyserFormulaireSeminaire(fd([...CHAMPS_VALIDES, ['capaciteMax', '-5']]));
-    expect(resultat.erreur).toBeTruthy();
+  it('tarif vide devient null, texte libre conservé tel quel', () => {
+    expect(analyserFormulaireSeminaire(fd(CHAMPS_VALIDES)).donnees!.tarif).toBeNull();
+    const resultat = analyserFormulaireSeminaire(fd([...CHAMPS_VALIDES, ['tarif', '150 000 FCFA / participant']]));
+    expect(resultat.donnees!.tarif).toBe('150 000 FCFA / participant');
   });
 
   it('assemble les modules depuis des tableaux parallèles, ignore les titres vides', () => {

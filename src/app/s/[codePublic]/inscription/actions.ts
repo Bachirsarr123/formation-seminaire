@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { chargerSeminairePublic } from '@/lib/seminaire-public';
 import {
   InscriptionsFermeesError,
-  SeminaireCompletError,
   SeminaireIndisponibleError,
   SeminaireTermineError,
   traiterInscriptionPublique,
@@ -30,7 +29,6 @@ const schemaInscription = z
     email: z.string().trim(),
     telephone: z.string().trim(),
     fonction: z.string().trim(),
-    organisation: z.string().trim(),
   })
   .refine((donnees) => donnees.email !== '' || donnees.telephone !== '', {
     message: "Ce numéro n'est pas reconnu. Vérifiez l'indicatif, par exemple +221 77 000 00 00, ou renseignez un e-mail.",
@@ -44,7 +42,6 @@ function lireValeurs(formData: FormData): ValeursFormulaireInscription {
     email: String(formData.get('email') ?? ''),
     telephone: String(formData.get('telephone') ?? ''),
     fonction: String(formData.get('fonction') ?? ''),
-    organisation: String(formData.get('organisation') ?? ''),
   };
 }
 
@@ -108,7 +105,6 @@ export async function inscrireAction(
         email: analyse.data.email || null,
         telephone: analyse.data.telephone || null,
         fonction: analyse.data.fonction || null,
-        organisation: analyse.data.organisation || null,
         ip,
         userAgent,
         communicationsCoche: formData.get('communications') !== null,
@@ -116,7 +112,6 @@ export async function inscrireAction(
       }),
     );
   } catch (erreur) {
-    if (erreur instanceof SeminaireCompletError) return { erreurGenerale: 'Ce séminaire est complet.', valeurs };
     if (erreur instanceof InscriptionsFermeesError) {
       return { erreurGenerale: 'Les inscriptions sont fermées pour ce séminaire.', valeurs };
     }

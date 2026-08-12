@@ -14,7 +14,6 @@ const VALEURS_VIDES: ValeursFormulaireInscription = {
   email: '',
   telephone: '',
   fonction: '',
-  organisation: '',
 };
 
 interface Props {
@@ -55,7 +54,6 @@ export function FormulaireInscription({
       email: String(donnees.get('email') ?? ''),
       telephone: String(donnees.get('telephone') ?? ''),
       fonction: String(donnees.get('fonction') ?? ''),
-      organisation: String(donnees.get('organisation') ?? ''),
     });
   }
 
@@ -105,7 +103,6 @@ export function FormulaireInscription({
       </p>
 
       <Champ label="Fonction (optionnel)" name="fonction" autoComplete="organization-title" defaultValue={valeurs.fonction} />
-      <Champ label="Organisation (optionnelle)" name="organisation" autoComplete="organization" defaultValue={valeurs.organisation} />
 
       <hr className="border-[color:var(--gris-100)]" />
 

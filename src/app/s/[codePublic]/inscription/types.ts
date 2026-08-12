@@ -4,7 +4,6 @@ export interface ValeursFormulaireInscription {
   email: string;
   telephone: string;
   fonction: string;
-  organisation: string;
 }
 
 export interface EtatFormulaireInscription {

@@ -7,7 +7,6 @@ import { resoudreContexteParticipant, type ContexteParticipant } from '@/lib/con
 import { annulerInscription } from '@/lib/inscription';
 import {
   InscriptionsFermeesError,
-  SeminaireCompletError,
   SeminaireIndisponibleError,
   SeminaireTermineError,
   reactiverInscription,
@@ -43,7 +42,6 @@ export async function reinscrireAction(
   try {
     await reactiverInscription({ seminaireId: contexte.seminaire.id, participantId: contexte.participant.id });
   } catch (erreur) {
-    if (erreur instanceof SeminaireCompletError) return { erreur: 'Ce séminaire est complet.' };
     if (erreur instanceof InscriptionsFermeesError) return { erreur: 'Les inscriptions sont fermées pour ce séminaire.' };
     if (erreur instanceof SeminaireTermineError) return { erreur: 'Ce séminaire est terminé.' };
     if (erreur instanceof SeminaireIndisponibleError) return { erreur: "Ce séminaire n'est plus disponible." };

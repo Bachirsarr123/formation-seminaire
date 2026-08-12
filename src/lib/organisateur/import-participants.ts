@@ -397,18 +397,6 @@ export async function previsualiserImportCsv(
 // Confirmation
 // ------------------------------------------------------------
 
-export class CapaciteImportInsuffisanteError extends Error {
-  constructor(
-    public readonly placesRestantes: number,
-    public readonly demandees: number,
-  ) {
-    super(
-      `Il ne reste que ${placesRestantes} place(s) disponible(s) pour ${demandees} nouvelle(s) inscription(s) demandée(s) : import annulé, aucune ligne n'a été écrite.`,
-    );
-    this.name = 'CapaciteImportInsuffisanteError';
-  }
-}
-
 export class ApercuImportIntrouvableError extends Error {
   constructor() {
     super("Cet aperçu d'import est introuvable ou a expiré : veuillez réimporter le fichier.");
@@ -464,8 +452,6 @@ export async function confirmerImportCsv(
       throw new ApercuImportIntrouvableError();
     }
 
-    const seminaire = await tx.seminaire.findUniqueOrThrow({ where: { id: seminaireId } });
-
     let dejaInscrits = 0;
     const aInscrire: string[] = [];
 
@@ -492,20 +478,6 @@ export async function confirmerImportCsv(
         continue;
       }
       aInscrire.push(participant.id);
-    }
-
-    // Jauge tout-ou-rien (décision 5 de l'énoncé) : seules les lignes qui
-    // créeraient une inscription réellement nouvelle comptent — un import
-    // plein de gens déjà inscrits doit pouvoir passer même sur un séminaire
-    // complet, puisqu'il ne consomme aucune place supplémentaire.
-    if (seminaire.capaciteMax !== null) {
-      const occupees = await tx.inscription.count({
-        where: { seminaireId, statut: { in: [StatutInscription.CONFIRMEE, StatutInscription.EN_ATTENTE] } },
-      });
-      const placesRestantes = seminaire.capaciteMax - occupees;
-      if (aInscrire.length > placesRestantes) {
-        throw new CapaciteImportInsuffisanteError(Math.max(0, placesRestantes), aInscrire.length);
-      }
     }
 
     for (const participantId of aInscrire) {

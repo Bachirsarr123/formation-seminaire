@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { Modalite, SourceInscription, StatutInscription, StatutSeminaire } from '@prisma/client';
+import { Modalite, StatutSeminaire } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
-import { genererCodePublicSeminaire, genererJetonInscription } from '../../src/lib/jeton';
+import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 
 const EMAIL_ORGANISATRICE = 'organisatrice@meridien-formation.test';
 const MOT_DE_PASSE = 'ChangeMe!2026-demo-seed';
@@ -14,7 +14,7 @@ async function connecter(page: import('@playwright/test').Page) {
   await expect(page).toHaveURL(/\/organisateur\/seminaires$/);
 }
 
-async function creerSeminaireDeLOrganisatrice(capaciteMax: number | null = null) {
+async function creerSeminaireDeLOrganisatrice() {
   const organisatrice = await prisma.utilisateur.findFirstOrThrow({ where: { email: EMAIL_ORGANISATRICE } });
   const dansUnMois = new Date(Date.now() + 30 * 24 * 3600 * 1000);
   const seminaire = await prisma.seminaire.create({
@@ -28,7 +28,6 @@ async function creerSeminaireDeLOrganisatrice(capaciteMax: number | null = null)
       modalite: Modalite.PRESENTIEL,
       dureeHeures: 8,
       statut: StatutSeminaire.PUBLIE,
-      capaciteMax,
     },
   });
   return { cabinetId: organisatrice.cabinetId, seminaireId: seminaire.id };
@@ -83,48 +82,6 @@ test('import CSV : aperçu (valide/doublon/erreur) puis confirmation, source Imp
     const ligne = page.getByRole('row', { name: /Awa Diop/ });
     await expect(ligne).toBeVisible();
     await expect(ligne.getByText('Import', { exact: true })).toBeVisible();
-  } finally {
-    await nettoyerSeminaire(seminaireId);
-  }
-});
-
-test("capacité insuffisante : message clair, aucune ligne écrite", async ({ page }) => {
-  const { cabinetId, seminaireId } = await creerSeminaireDeLOrganisatrice(1);
-  try {
-    // Sature la seule place disponible avant l'import.
-    const occupant = await prisma.participant.create({
-      data: { cabinetId, nom: 'Occupant', prenom: 'Place', email: `occupant.e2e.${Date.now()}@example.test` },
-    });
-    await prisma.inscription.create({
-      data: {
-        seminaireId,
-        participantId: occupant.id,
-        jeton: genererJetonInscription(),
-        statut: StatutInscription.CONFIRMEE,
-        source: SourceInscription.MANUEL,
-      },
-    });
-
-    const emailImport = `import.complet.${Date.now()}@example.test`;
-    const csv = ['Nom;Prenom;Email', `Nouveau;Venu;${emailImport}`].join('\n');
-
-    await connecter(page);
-    await page.goto(`/organisateur/seminaires/${seminaireId}/participants/import`);
-
-    await page.getByLabel('Fichier CSV').setInputFiles({
-      name: 'participants.csv',
-      mimeType: 'text/csv',
-      buffer: Buffer.from(csv, 'utf-8'),
-    });
-    await page.getByRole('button', { name: 'Prévisualiser' }).click();
-    await page.getByRole('button', { name: /Confirmer l'import de 1 participant/ }).click();
-
-    await expect(page.getByText(/place\(s\) disponible\(s\)/)).toBeVisible();
-
-    const inscriptions = await prisma.inscription.count({ where: { seminaireId } });
-    expect(inscriptions).toBe(1);
-    const participantImporte = await prisma.participant.findFirst({ where: { email: emailImport } });
-    expect(participantImporte).toBeNull();
   } finally {
     await nettoyerSeminaire(seminaireId);
   }

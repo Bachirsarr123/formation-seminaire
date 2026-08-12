@@ -30,14 +30,19 @@ export interface ValeursInitialesSeminaire {
   dateDebut: Date;
   dateFin: Date;
   lieu: string | null;
+  tarif: string | null;
   modalite: string;
   dureeHeures: number;
-  capaciteMax: number | null;
   inscriptionOuverte: boolean;
   validationRequise: boolean;
   seuilAnonymat: number;
   modules: ModuleInitial[];
   formateurs: FormateurInitial[];
+  // Pour l'aperçu du logo déjà téléversé (édition) — codePublic sert à
+  // construire l'URL de la route publique qui le sert (route déjà
+  // authentifiée par le code, pas besoin d'une route organisateur dédiée).
+  codePublic?: string;
+  logoClientUrl?: string | null;
 }
 
 interface Props {
@@ -138,6 +143,18 @@ export function FormulaireSeminaire({ action, formateursDisponibles, valeursInit
           <input id="lieu" type="text" name="lieu" defaultValue={valeursInitiales?.lieu ?? ''} />
         </div>
         <div className="flex flex-col gap-1">
+          <label htmlFor="tarif" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
+            Tarif
+          </label>
+          <input
+            id="tarif"
+            type="text"
+            name="tarif"
+            placeholder="Gratuit, 150 000 FCFA / participant, sur devis…"
+            defaultValue={valeursInitiales?.tarif ?? ''}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
           <label htmlFor="modalite" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
             Modalité
           </label>
@@ -163,37 +180,24 @@ export function FormulaireSeminaire({ action, formateursDisponibles, valeursInit
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="capaciteMax" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
-            Capacité (vide = illimitée)
-          </label>
-          <input id="capaciteMax" type="number" name="capaciteMax" min="0" step="1" defaultValue={valeursInitiales?.capaciteMax ?? ''} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="seuilAnonymat" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
-            Seuil d&apos;anonymat
-          </label>
-          <input
-            id="seuilAnonymat"
-            type="number"
-            name="seuilAnonymat"
-            min="1"
-            step="1"
-            defaultValue={valeursInitiales?.seuilAnonymat ?? 5}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="inscriptionOuverte" defaultChecked={valeursInitiales?.inscriptionOuverte ?? false} />
-          Inscriptions ouvertes
+      <div className="flex flex-col gap-1">
+        <label htmlFor="logoClient" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
+          Logo de l&apos;entreprise cliente (image, 2 Mo maximum)
         </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="validationRequise" defaultChecked={valeursInitiales?.validationRequise ?? false} />
-          Validation manuelle requise avant confirmation
-        </label>
+        {valeursInitiales?.logoClientUrl && valeursInitiales.codePublic ? (
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/s/${valeursInitiales.codePublic}/logo-client`}
+              alt=""
+              className="h-8 w-8 rounded-full object-cover"
+            />
+            <span className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
+              Logo actuel — en téléverser un nouveau le remplace.
+            </span>
+          </div>
+        ) : null}
+        <input id="logoClient" type="file" name="logoClient" accept="image/*" />
       </div>
 
       <fieldset className="flex flex-col gap-2">
@@ -281,6 +285,31 @@ export function FormulaireSeminaire({ action, formateursDisponibles, valeursInit
           ))}
         </fieldset>
       )}
+
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="seuilAnonymat" className="text-[length:var(--taille-md)] text-[color:var(--gris-800)]">
+            Seuil d&apos;anonymat
+          </label>
+          <input
+            id="seuilAnonymat"
+            type="number"
+            name="seuilAnonymat"
+            min="1"
+            step="1"
+            defaultValue={valeursInitiales?.seuilAnonymat ?? 5}
+            className="w-32"
+          />
+        </div>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="inscriptionOuverte" defaultChecked={valeursInitiales?.inscriptionOuverte ?? false} />
+          Inscriptions ouvertes
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="validationRequise" defaultChecked={valeursInitiales?.validationRequise ?? false} />
+          Validation manuelle requise avant confirmation
+        </label>
+      </div>
 
       <button
         type="submit"

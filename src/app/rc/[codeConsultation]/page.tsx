@@ -1,6 +1,7 @@
 import { chargerReponsesRecueil } from '@/lib/recueil/consultation';
 import { libellesReponseRecueil } from '@/lib/recueil/options';
 import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
+import { EnTeteLogos } from '@/components/en-tete-logos';
 
 interface Props {
   params: Promise<{ codeConsultation: string }>;
@@ -20,6 +21,12 @@ export default async function PageConsultationRecueil({ params }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-4 pb-12">
+      <EnTeteLogos
+        cabinet={recueil.cabinet}
+        codePublic={recueil.seminaire.codePublic}
+        logoClientUrl={recueil.seminaire.logoClientUrl}
+      />
+
       <header className="flex flex-col gap-1">
         <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Séminaire de formation :</p>
         <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{recueil.seminaire.titre}</h1>

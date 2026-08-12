@@ -15,8 +15,8 @@ import { prisma } from '../prisma';
  * est lib/organisateur/recueil.ts, réservée à l'espace organisateur.
  */
 const INCLUSION_RECUEIL_ANONYME = {
-  seminaire: { select: { titre: true } },
-  cabinet: { select: { nom: true, adresse: true, emailContact: true, telephoneContact: true } },
+  seminaire: { select: { titre: true, codePublic: true, logoClientUrl: true } },
+  cabinet: { select: { nom: true, logoUrl: true, adresse: true, emailContact: true, telephoneContact: true } },
   questions: { orderBy: { ordre: 'asc' as const } },
   reponses: { orderBy: { createdAt: 'asc' as const }, select: { id: true, reponses: true } },
 };

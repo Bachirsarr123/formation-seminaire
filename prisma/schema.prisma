@@ -57,6 +57,12 @@ model Utilisateur {
   // nullable : les formateurs n'ont pas de mot de passe, ils passent par lien magique
   motDePasseHash String?         @map("mot_de_passe_hash")
   actif          Boolean         @default(true)
+  // CV du formateur (PDF), téléversé depuis l'écran Équipe — chemin relatif
+  // sur le disque du conteneur, même adaptateur de stockage que les supports
+  // de cours (lib/organisateur/stockage-supports.ts). Sans objet pour un
+  // compte ORGANISATEUR, mais pas de contrainte CHECK par rôle : un champ
+  // simplement jamais renseigné pour ce rôle-là.
+  cvUrl          String?         @map("cv_url")
   createdAt      DateTime        @default(now()) @map("created_at")
 
   cabinet             Cabinet                  @relation(fields: [cabinetId], references: [id])
@@ -183,9 +189,17 @@ model Seminaire {
   dateDebut          DateTime        @map("date_debut")
   dateFin            DateTime        @map("date_fin")
   lieu               String?
+  // Texte libre, pas un montant : « Gratuit », « 150 000 FCFA / participant »,
+  // « Sur devis »... — affiché à côté du lieu, jamais interprété/calculé.
+  tarif              String?
   modalite           Modalite
   dureeHeures        Float           @map("duree_heures")
   capaciteMax        Int?            @map("capacite_max")
+  // Logo de l'entreprise cliente (distinct du logo du cabinet,
+  // Cabinet.logoUrl) — affiché à droite sur les pages publiques du
+  // séminaire. Chemin relatif sur le disque du conteneur, même adaptateur de
+  // stockage local que les supports de cours.
+  logoClientUrl      String?         @map("logo_client_url")
   statut             StatutSeminaire @default(BROUILLON)
   inscriptionOuverte Boolean         @default(false) @map("inscription_ouverte")
   validationRequise  Boolean         @default(false) @map("validation_requise")

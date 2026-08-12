@@ -49,7 +49,7 @@ describe('resoudreContexteLienFormateur', () => {
     expect(contexte!.utilisateurId).toBe(formateur.id);
     expect(contexte!.cabinetId).toBe(cabinet.id);
     expect(contexte!.seminaire.id).toBe(seminaire.id);
-    expect(contexte!.formateur).toEqual({ nom: 'Camara', prenom: 'Issa' });
+    expect(contexte!.formateur).toEqual({ nom: 'Camara', prenom: 'Issa', cvUrl: null });
   });
 
   it('renvoie null pour un code inconnu', async () => {

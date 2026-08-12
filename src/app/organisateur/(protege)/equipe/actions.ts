@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { analyserFormulaireFormateur } from '@/lib/organisateur/formulaire-equipe';
 import { EmailDejaUtiliseError, creerFormateur, desactiverCompte } from '@/lib/organisateur/equipe';
+import { enregistrerCvFormateur, erreurCvInvalide } from '@/lib/organisateur/cv-formateur';
 
 // Les deux actions ci-dessous sont réservées aux organisateurs (rôle vérifié
 // explicitement, jamais seulement la session) — la page elle-même l'exige
@@ -44,4 +45,31 @@ export async function desactiverCompteAction(utilisateurId: string): Promise<voi
   const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
   await desactiverCompte(contexte.cabinetId, utilisateurId, contexte.utilisateurId);
   revalidatePath('/organisateur/equipe');
+}
+
+export interface EtatUploadCv {
+  erreur?: string;
+}
+
+export async function televerserCvAction(
+  utilisateurId: string,
+  _etatPrecedent: EtatUploadCv,
+  formData: FormData,
+): Promise<EtatUploadCv> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+
+  const fichier = formData.get('cv');
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { erreur: 'Sélectionnez un fichier.' };
+  }
+
+  const erreurValidation = erreurCvInvalide(fichier.type, fichier.size);
+  if (erreurValidation) return { erreur: erreurValidation };
+
+  const contenu = Buffer.from(await fichier.arrayBuffer());
+  const ok = await enregistrerCvFormateur(contexte.cabinetId, utilisateurId, fichier.name, contenu);
+  if (!ok) return { erreur: 'Formateur introuvable.' };
+
+  revalidatePath('/organisateur/equipe');
+  return {};
 }

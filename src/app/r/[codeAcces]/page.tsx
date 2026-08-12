@@ -3,6 +3,7 @@ import { chargerRecueilPublic } from '@/lib/recueil/public';
 import { genererJetonFormulaire } from '@/lib/anti-spam';
 import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-accent';
 import { PiedDePageCabinet } from '@/components/pied-de-page-cabinet';
+import { EnTeteLogos } from '@/components/en-tete-logos';
 import { envoyerReponseRecueilAction } from './actions';
 import { FormulaireRecueil } from './formulaire-recueil';
 
@@ -29,6 +30,12 @@ export default async function PageRecueil({ params }: Props) {
 
   return (
     <main style={stylesJetonsAccent(jetons) as CSSProperties} className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-4 pb-12">
+      <EnTeteLogos
+        cabinet={recueil.cabinet}
+        codePublic={recueil.seminaire.codePublic}
+        logoClientUrl={recueil.seminaire.logoClientUrl}
+      />
+
       <header className="flex flex-col gap-2">
         <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Séminaire de formation :</p>
         <h1 className="text-[length:var(--taille-lg)] text-[color:var(--gris-900)]">{recueil.seminaire.titre}</h1>

@@ -12,8 +12,8 @@ export async function chargerRecueilPublic(codeAcces: string) {
   const recueil = await prisma.recueil.findUnique({
     where: { codeAcces },
     include: {
-      seminaire: { select: { titre: true } },
-      cabinet: { select: { nom: true, adresse: true, emailContact: true, telephoneContact: true } },
+      seminaire: { select: { titre: true, codePublic: true, logoClientUrl: true } },
+      cabinet: { select: { nom: true, logoUrl: true, adresse: true, emailContact: true, telephoneContact: true } },
       questions: { orderBy: { ordre: 'asc' } },
     },
   });

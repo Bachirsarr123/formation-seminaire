@@ -3,7 +3,6 @@ import { Modalite, RoleUtilisateur, SourceInscription, StatutInscription, Statut
 import { prisma } from '../../src/lib/prisma';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 import { inscrireParticipant } from '../../src/lib/inscription';
-import { SeminaireCompletError } from '../../src/lib/inscription-publique';
 import {
   ajouterParticipantManuel,
   annulerInscriptionOrganisateur,
@@ -18,10 +17,7 @@ async function creerCabinet() {
   return prisma.cabinet.create({ data: { nom: `Cabinet participants ${Date.now()}-${Math.random()}` } });
 }
 
-async function creerSeminaire(
-  cabinetId: string,
-  overrides: Partial<{ capaciteMax: number | null; validationRequise: boolean }> = {},
-) {
+async function creerSeminaire(cabinetId: string, overrides: Partial<{ validationRequise: boolean }> = {}) {
   return prisma.seminaire.create({
     data: {
       cabinetId,
@@ -32,7 +28,6 @@ async function creerSeminaire(
       modalite: Modalite.PRESENTIEL,
       dureeHeures: 7,
       statut: StatutSeminaire.PUBLIE,
-      capaciteMax: overrides.capaciteMax ?? null,
       validationRequise: overrides.validationRequise ?? false,
     },
   });
@@ -73,9 +68,9 @@ describe('ajouterParticipantManuel', () => {
     expect(total).toBe(1);
   });
 
-  it('lève SeminaireCompletError si la capacité est atteinte, ignore validationRequise (toujours CONFIRMEE)', async () => {
+  it('ignore validationRequise (toujours CONFIRMEE)', async () => {
     const cabinet = await creerCabinet();
-    const seminaire = await creerSeminaire(cabinet.id, { capaciteMax: 1, validationRequise: true });
+    const seminaire = await creerSeminaire(cabinet.id, { validationRequise: true });
 
     const premiere = await ajouterParticipantManuel(cabinet.id, seminaire.id, {
       nom: 'A',
@@ -83,10 +78,6 @@ describe('ajouterParticipantManuel', () => {
       email: `a1.${Date.now()}@example.test`,
     });
     expect(premiere!.statut).toBe(StatutInscription.CONFIRMEE);
-
-    await expect(
-      ajouterParticipantManuel(cabinet.id, seminaire.id, { nom: 'B', prenom: '2', email: `b2.${Date.now()}@example.test` }),
-    ).rejects.toThrow(SeminaireCompletError);
   });
 
   it("renvoie null pour un séminaire d'un autre cabinet", async () => {
@@ -97,63 +88,6 @@ describe('ajouterParticipantManuel', () => {
     expect(
       await ajouterParticipantManuel(cabinetB.id, seminaire.id, { nom: 'X', prenom: 'Y', email: `xy.${Date.now()}@example.test` }),
     ).toBeNull();
-  });
-});
-
-// Décision 9 : refuser/annuler doit libérer la place immédiatement — sans
-// ce test, une régression réintroduisant un compteur mis en cache passerait
-// inaperçue jusqu'à bloquer de vraies inscriptions sans raison visible.
-describe('libération de place — refuser/annuler', () => {
-  it('refuser une EN_ATTENTE sur un séminaire plein libère immédiatement la place', async () => {
-    const cabinet = await creerCabinet();
-    const seminaire = await creerSeminaire(cabinet.id, { capaciteMax: 1 });
-    const participant = await creerParticipant(cabinet.id, 'attente');
-    const inscriptionEnAttente = await inscrireParticipant({
-      seminaireId: seminaire.id,
-      participantId: participant.id,
-      source: SourceInscription.AUTO_INSCRIPTION,
-      statutCible: StatutInscription.EN_ATTENTE,
-    });
-
-    await expect(
-      ajouterParticipantManuel(cabinet.id, seminaire.id, {
-        nom: 'Nouveau',
-        prenom: 'Venu',
-        email: `nouveau.${Date.now()}@example.test`,
-      }),
-    ).rejects.toThrow(SeminaireCompletError);
-
-    expect(await refuserInscription(cabinet.id, seminaire.id, inscriptionEnAttente.id)).toBe(true);
-
-    const apresRefus = await ajouterParticipantManuel(cabinet.id, seminaire.id, {
-      nom: 'Nouveau',
-      prenom: 'Venu',
-      email: `nouveau2.${Date.now()}@example.test`,
-    });
-    expect(apresRefus).not.toBeNull();
-  });
-
-  it('annuler une CONFIRMEE sur un séminaire plein libère immédiatement la place', async () => {
-    const cabinet = await creerCabinet();
-    const seminaire = await creerSeminaire(cabinet.id, { capaciteMax: 1 });
-    const confirmee = await ajouterParticipantManuel(cabinet.id, seminaire.id, {
-      nom: 'Confirme',
-      prenom: 'A',
-      email: `confirme.a.${Date.now()}@example.test`,
-    });
-
-    await expect(
-      ajouterParticipantManuel(cabinet.id, seminaire.id, { nom: 'B', prenom: 'B', email: `b.b.${Date.now()}@example.test` }),
-    ).rejects.toThrow(SeminaireCompletError);
-
-    expect(await annulerInscriptionOrganisateur(cabinet.id, seminaire.id, confirmee!.id)).toBe(true);
-
-    const apresAnnulation = await ajouterParticipantManuel(cabinet.id, seminaire.id, {
-      nom: 'B',
-      prenom: 'B',
-      email: `b.b2.${Date.now()}@example.test`,
-    });
-    expect(apresAnnulation).not.toBeNull();
   });
 });
 

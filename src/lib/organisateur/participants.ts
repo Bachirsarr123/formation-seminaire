@@ -4,7 +4,6 @@ import { prisma } from '../prisma';
 import { trouverOuCreerParticipant } from '../participant';
 import { inscrireParticipant, annulerInscription } from '../inscription';
 import { genererJetonInscription } from '../jeton';
-import { SeminaireCompletError } from '../inscription-publique';
 
 // ============================================================
 // Gestion des inscrits d'un séminaire côté organisateur (lot 4, étape 6).
@@ -114,11 +113,8 @@ export async function listerInscriptionsSeminaire(
  * place du participant. Seule l'auto-inscription publique (déjà en place)
  * en enregistre.
  *
- * Même pattern transaction + verrou `FOR UPDATE` sur la jauge de places que
- * `traiterInscriptionPublique` (lib/inscription-publique.ts) : la capacité
- * reste appliquée, l'organisateur doit augmenter `capaciteMax` (page
- * Modifier) s'il veut dépasser la limite plutôt que de la contourner
- * silencieusement.
+ * Aucune jauge de places (voir aussi lib/inscription-publique.ts) : le verrou
+ * `FOR UPDATE` sert uniquement à sérialiser l'upsert d'inscription lui-même.
  */
 export async function ajouterParticipantManuel(
   cabinetId: string,
@@ -134,21 +130,7 @@ export async function ajouterParticipantManuel(
   return prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM seminaire WHERE id = ${seminaireId} FOR UPDATE`;
 
-    const seminaire = await tx.seminaire.findUniqueOrThrow({ where: { id: seminaireId } });
     const participant = await trouverOuCreerParticipant({ cabinetId, ...donnees }, tx);
-
-    const inscriptionExistante = await tx.inscription.findUnique({
-      where: { seminaireId_participantId: { seminaireId, participantId: participant.id } },
-    });
-
-    if (!inscriptionExistante || inscriptionExistante.statut === StatutInscription.ANNULEE) {
-      const occupees = await tx.inscription.count({
-        where: { seminaireId, statut: { in: [StatutInscription.CONFIRMEE, StatutInscription.EN_ATTENTE] } },
-      });
-      if (seminaire.capaciteMax !== null && occupees >= seminaire.capaciteMax) {
-        throw new SeminaireCompletError();
-      }
-    }
 
     return inscrireParticipant(
       { seminaireId, participantId: participant.id, source: SourceInscription.MANUEL, statutCible: StatutInscription.CONFIRMEE },

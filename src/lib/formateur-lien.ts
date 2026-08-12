@@ -6,15 +6,18 @@ import { prisma } from './prisma';
 export interface ContexteLienFormateur {
   utilisateurId: string;
   cabinetId: string;
-  formateur: { nom: string; prenom: string };
+  formateur: { nom: string; prenom: string; cvUrl: string | null };
+  cabinet: { nom: string; logoUrl: string | null };
   seminaire: {
     id: string;
+    codePublic: string;
     titre: string;
     dateDebut: Date;
     dateFin: Date;
     lieu: string | null;
     modalite: Modalite;
     statut: StatutSeminaire;
+    logoClientUrl: string | null;
   };
 }
 
@@ -34,11 +37,12 @@ export const resoudreContexteLienFormateur = cache(
       where: { codeFormateur },
       select: {
         utilisateurId: true,
-        utilisateur: { select: { nom: true, prenom: true, actif: true } },
+        utilisateur: { select: { nom: true, prenom: true, actif: true, cvUrl: true } },
         seminaire: {
           select: {
             id: true,
             cabinetId: true,
+            codePublic: true,
             titre: true,
             dateDebut: true,
             dateFin: true,
@@ -46,6 +50,8 @@ export const resoudreContexteLienFormateur = cache(
             modalite: true,
             statut: true,
             supprimeLe: true,
+            logoClientUrl: true,
+            cabinet: { select: { nom: true, logoUrl: true } },
           },
         },
       },
@@ -58,15 +64,18 @@ export const resoudreContexteLienFormateur = cache(
     return {
       utilisateurId: affectation.utilisateurId,
       cabinetId: affectation.seminaire.cabinetId,
-      formateur: { nom: affectation.utilisateur.nom, prenom: affectation.utilisateur.prenom },
+      formateur: { nom: affectation.utilisateur.nom, prenom: affectation.utilisateur.prenom, cvUrl: affectation.utilisateur.cvUrl },
+      cabinet: affectation.seminaire.cabinet,
       seminaire: {
         id: affectation.seminaire.id,
+        codePublic: affectation.seminaire.codePublic,
         titre: affectation.seminaire.titre,
         dateDebut: affectation.seminaire.dateDebut,
         dateFin: affectation.seminaire.dateFin,
         lieu: affectation.seminaire.lieu,
         modalite: affectation.seminaire.modalite,
         statut: affectation.seminaire.statut,
+        logoClientUrl: affectation.seminaire.logoClientUrl,
       },
     };
   },

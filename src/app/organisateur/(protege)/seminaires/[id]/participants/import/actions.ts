@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import {
   ApercuImportIntrouvableError,
-  CapaciteImportInsuffisanteError,
   PLAFOND_TAILLE_OCTETS,
   confirmerImportCsv,
   previsualiserImportCsv,
@@ -74,7 +73,7 @@ export async function confirmerImportAction(
     revalidatePath(`/organisateur/seminaires/${seminaireId}/participants`);
     return { succes: true, importes: resultat.importes, dejaInscrits: resultat.dejaInscrits };
   } catch (e) {
-    if (e instanceof ApercuImportIntrouvableError || e instanceof CapaciteImportInsuffisanteError) {
+    if (e instanceof ApercuImportIntrouvableError) {
       return { erreur: e.message };
     }
     throw e;

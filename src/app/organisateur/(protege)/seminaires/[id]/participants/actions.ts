@@ -10,7 +10,6 @@ import {
   regenererJetonParticipant,
   validerInscription,
 } from '@/lib/organisateur/participants';
-import { SeminaireCompletError } from '@/lib/inscription-publique';
 
 // Toutes les actions ci-dessous sont réservées aux organisateurs (rôle
 // vérifié explicitement, jamais seulement la session) : un formateur est en
@@ -31,13 +30,8 @@ export async function ajouterParticipantAction(
   const { donnees, erreur } = analyserFormulaireParticipant(formData);
   if (erreur || !donnees) return { erreur: erreur ?? 'Formulaire invalide.' };
 
-  try {
-    const inscription = await ajouterParticipantManuel(contexte.cabinetId, seminaireId, donnees);
-    if (!inscription) return { erreur: 'Séminaire introuvable.' };
-  } catch (e) {
-    if (e instanceof SeminaireCompletError) return { erreur: e.message };
-    throw e;
-  }
+  const inscription = await ajouterParticipantManuel(contexte.cabinetId, seminaireId, donnees);
+  if (!inscription) return { erreur: 'Séminaire introuvable.' };
 
   revalidatePath(`/organisateur/seminaires/${seminaireId}/participants`);
   return { succes: true };

@@ -2,10 +2,9 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { Modalite, RoleUtilisateur, SourceInscription, StatutInscription, StatutSeminaire } from '@prisma/client';
 import { prisma } from '../../src/lib/prisma';
 import { genererCodePublicSeminaire } from '../../src/lib/jeton';
-import { inscrireParticipant, annulerInscription } from '../../src/lib/inscription';
+import { inscrireParticipant } from '../../src/lib/inscription';
 import {
   ApercuImportIntrouvableError,
-  CapaciteImportInsuffisanteError,
   PLAFOND_LIGNES,
   confirmerImportCsv,
   previsualiserImportCsv,
@@ -28,7 +27,7 @@ async function creerOrganisateur(cabinetId: string) {
   });
 }
 
-async function creerSeminaire(cabinetId: string, capaciteMax: number | null = null) {
+async function creerSeminaire(cabinetId: string) {
   return prisma.seminaire.create({
     data: {
       cabinetId,
@@ -39,7 +38,6 @@ async function creerSeminaire(cabinetId: string, capaciteMax: number | null = nu
       modalite: Modalite.PRESENTIEL,
       dureeHeures: 7,
       statut: StatutSeminaire.PUBLIE,
-      capaciteMax,
     },
   });
 }
@@ -175,48 +173,6 @@ describe('confirmerImportCsv', () => {
 
     const enAttente = await prisma.importEnAttente.findUnique({ where: { id: rapport.apercuId! } });
     expect(enAttente).toBeNull();
-  });
-
-  it("capacité insuffisante : rien n'est écrit, l'aperçu survit, et une confirmation ultérieure réussit une fois la place libérée", async () => {
-    const cabinet = await creerCabinet();
-    const organisateur = await creerOrganisateur(cabinet.id);
-    const seminaire = await creerSeminaire(cabinet.id, 1);
-
-    const occupant = await prisma.participant.create({
-      data: { cabinetId: cabinet.id, nom: 'Occupant', prenom: 'Place', email: `occupant.${Date.now()}@x.sn` },
-    });
-    const inscriptionOccupante = await inscrireParticipant({
-      seminaireId: seminaire.id,
-      participantId: occupant.id,
-      source: SourceInscription.MANUEL,
-      statutCible: StatutInscription.CONFIRMEE,
-    });
-
-    const email = `capacite.${Date.now()}.${Math.random()}@x.sn`;
-    const rapport = await previsualiserImportCsv(
-      cabinet.id,
-      seminaire.id,
-      organisateur.id,
-      csv([ENTETE, ['Nouveau', 'Venu', email, '', '', '']]),
-    );
-    if (!rapport || 'erreurGlobale' in rapport) throw new Error('rapport attendu');
-
-    const participantsAvant = await prisma.participant.count({ where: { cabinetId: cabinet.id } });
-    const inscriptionsAvant = await prisma.inscription.count({ where: { seminaireId: seminaire.id } });
-
-    await expect(confirmerImportCsv(cabinet.id, seminaire.id, organisateur.id, rapport.apercuId!)).rejects.toThrow(
-      CapaciteImportInsuffisanteError,
-    );
-
-    expect(await prisma.participant.count({ where: { cabinetId: cabinet.id } })).toBe(participantsAvant);
-    expect(await prisma.inscription.count({ where: { seminaireId: seminaire.id } })).toBe(inscriptionsAvant);
-    expect(await prisma.importEnAttente.findUnique({ where: { id: rapport.apercuId! } })).not.toBeNull();
-
-    // Libère la place, puis retente SANS réimporter.
-    await annulerInscription(inscriptionOccupante.id);
-    const resultat = await confirmerImportCsv(cabinet.id, seminaire.id, organisateur.id, rapport.apercuId!);
-    expect(resultat).toEqual({ importes: 1, dejaInscrits: 0 });
-    expect(await prisma.importEnAttente.findUnique({ where: { id: rapport.apercuId! } })).toBeNull();
   });
 
   it('refuse un apercuId inexistant', async () => {

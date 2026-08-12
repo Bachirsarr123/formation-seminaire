@@ -182,6 +182,7 @@ export interface DonneesSeminaire {
   dateDebut: Date;
   dateFin: Date;
   lieu?: string | null;
+  tarif?: string | null;
   modalite: Modalite;
   dureeHeures: number;
   capaciteMax?: number | null;
@@ -230,6 +231,7 @@ export async function creerSeminaire(cabinetId: string, donnees: DonneesSeminair
       dateDebut: donnees.dateDebut,
       dateFin: donnees.dateFin,
       lieu: donnees.lieu,
+      tarif: donnees.tarif,
       modalite: donnees.modalite,
       dureeHeures: donnees.dureeHeures,
       capaciteMax: donnees.capaciteMax,

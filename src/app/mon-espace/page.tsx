@@ -8,6 +8,7 @@ import { deriverJetonsAccent, stylesJetonsAccent } from '@/lib/design/couleur-ac
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import { prisma } from '@/lib/prisma';
 import { AccesIntrouvable } from '@/components/acces-introuvable';
+import { EnTeteLogos } from '@/components/en-tete-logos';
 import { BoutonAnnuler } from './bouton-annuler';
 import { BoutonReinscrire } from './bouton-reinscrire';
 import { ToggleConsentement } from './toggle-consentement';
@@ -35,6 +36,11 @@ export default async function PageMonEspace() {
   if (contexte.inscription.statut === 'ANNULEE') {
     return (
       <main style={style} className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 p-4">
+        <EnTeteLogos
+          cabinet={contexte.seminaire.cabinet}
+          codePublic={contexte.seminaire.codePublic}
+          logoClientUrl={contexte.seminaire.logoClientUrl}
+        />
         <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
         <p className="text-[color:var(--gris-700)]">Votre inscription est annulée.</p>
         <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
@@ -69,6 +75,12 @@ export default async function PageMonEspace() {
         </p>
       ) : null}
 
+      <EnTeteLogos
+        cabinet={contexte.seminaire.cabinet}
+        codePublic={contexte.seminaire.codePublic}
+        logoClientUrl={contexte.seminaire.logoClientUrl}
+      />
+
       <header>
         <h1 className="text-[length:var(--taille-xl)] text-[color:var(--gris-900)]">{contexte.seminaire.titre}</h1>
         <p className="text-[color:var(--gris-600)]">
@@ -76,6 +88,7 @@ export default async function PageMonEspace() {
           {formaterHeure(contexte.seminaire.dateFin)}
           {contexte.seminaire.lieu ? ` · ${contexte.seminaire.lieu}` : ''}
         </p>
+        {contexte.seminaire.tarif ? <p className="text-[color:var(--gris-600)]">{contexte.seminaire.tarif}</p> : null}
       </header>
 
       {phase === 'AVANT' ? (
