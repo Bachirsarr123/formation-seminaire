@@ -23,7 +23,7 @@ export function PiedDePageCabinet({ cabinet }: { cabinet: CabinetPourPiedDePage 
 
   return (
     <footer className="w-full border-t border-[color:var(--gris-100)] bg-[color:var(--gris-000)]">
-      <div className="mx-auto flex max-w-3xl flex-col gap-1 p-4 py-6 text-center text-[length:var(--taille-sm)] text-[color:var(--gris-500)] sm:text-left">
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-1 p-4 py-6 text-center text-[length:var(--taille-sm)] text-[color:var(--gris-500)]">
         <p className="font-medium text-[color:var(--gris-500)]">{cabinet.nom}</p>
         {coordonnees.length > 0 ? <p>{coordonnees.join(' · ')}</p> : null}
       </div>

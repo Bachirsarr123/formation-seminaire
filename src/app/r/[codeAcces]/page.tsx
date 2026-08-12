@@ -39,7 +39,7 @@ export default async function PageRecueil({ params }: Props) {
       />
 
       <CartePublique>
-        <TitrePage surtitre={recueil.seminaire.titre} titre={recueil.titre}>
+        <TitrePage surtitre={recueil.titre} titre={recueil.seminaire.titre}>
           <p className="whitespace-pre-wrap text-[color:var(--gris-700)]">{recueil.description}</p>
         </TitrePage>
 
