@@ -16,7 +16,7 @@ export interface EvaluationPublique {
     id: string;
     nom: string;
     logoUrl: string | null;
-    couleurPrimaire: string;
+    couleurPrimaire: string | null;
     adresse: string | null;
     emailContact: string | null;
     telephoneContact: string | null;

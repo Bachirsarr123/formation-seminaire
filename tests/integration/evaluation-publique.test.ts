@@ -5,7 +5,7 @@ import { genererCodePublicSeminaire } from '../../src/lib/jeton';
 import { obtenirOuCreerLienEvaluation } from '../../src/lib/organisateur/lien-evaluation';
 import { chargerEvaluationPublique, soumettreReponseEvaluationPublique } from '../../src/lib/questionnaire/public';
 
-async function creerCabinetEtSeminaire(dataSeminaire: Partial<Parameters<typeof prisma.seminaire.create>[0]['data']> = {}) {
+async function creerCabinetEtSeminaire() {
   const cabinet = await prisma.cabinet.create({ data: { nom: 'Cabinet test évaluation publique' } });
   const seminaire = await prisma.seminaire.create({
     data: {
@@ -17,7 +17,6 @@ async function creerCabinetEtSeminaire(dataSeminaire: Partial<Parameters<typeof 
       modalite: Modalite.PRESENTIEL,
       dureeHeures: 4,
       statut: StatutSeminaire.EN_COURS,
-      ...dataSeminaire,
     },
   });
   return { cabinet, seminaire };
