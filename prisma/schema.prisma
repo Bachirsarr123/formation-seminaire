@@ -180,36 +180,42 @@ enum StatutSeminaire {
 }
 
 model Seminaire {
-  id                 String          @id @default(uuid())
-  cabinetId          String          @map("cabinet_id")
+  id                  String          @id @default(uuid())
+  cabinetId           String          @map("cabinet_id")
   // nanoid(10), généré côté application, jamais deviné
-  codePublic         String          @unique @map("code_public")
-  titre              String
-  description        String?
-  dateDebut          DateTime        @map("date_debut")
-  dateFin            DateTime        @map("date_fin")
-  lieu               String?
+  codePublic          String          @unique @map("code_public")
+  titre               String
+  description         String?
+  dateDebut           DateTime        @map("date_debut")
+  dateFin             DateTime        @map("date_fin")
+  lieu                String?
   // Texte libre, pas un montant : « Gratuit », « 150 000 FCFA / participant »,
   // « Sur devis »... — affiché à côté du lieu, jamais interprété/calculé.
-  tarif              String?
-  modalite           Modalite
-  dureeHeures        Float           @map("duree_heures")
-  capaciteMax        Int?            @map("capacite_max")
+  tarif               String?
+  modalite            Modalite
+  dureeHeures         Float           @map("duree_heures")
+  capaciteMax         Int?            @map("capacite_max")
   // Logo de l'entreprise cliente (distinct du logo du cabinet,
   // Cabinet.logoUrl) — affiché à droite sur les pages publiques du
   // séminaire. Porte l'id d'une ligne FichierStocke, même adaptateur de
   // stockage que les supports de cours.
-  logoClientUrl      String?         @map("logo_client_url")
-  statut             StatutSeminaire @default(BROUILLON)
-  inscriptionOuverte Boolean         @default(false) @map("inscription_ouverte")
-  validationRequise  Boolean         @default(false) @map("validation_requise")
+  logoClientUrl       String?         @map("logo_client_url")
+  // Lien public de l'évaluation à chaud (/e/{codeAccesEvaluation}) — même
+  // principe que le recueil de besoins (Recueil.codeAcces) : un seul lien à
+  // copier et diffuser à tous les participants, pas de suivi par personne.
+  // Nullable + généré à la demande (obtenirOuCreerLienEvaluation) : les
+  // séminaires déjà en base au moment de cet ajout n'en ont pas encore.
+  codeAccesEvaluation String?         @unique @map("code_acces_evaluation")
+  statut              StatutSeminaire @default(BROUILLON)
+  inscriptionOuverte  Boolean         @default(false) @map("inscription_ouverte")
+  validationRequise   Boolean         @default(false) @map("validation_requise")
   // en dessous de ce nombre de messages anonymes, l'organisateur ne voit rien
-  seuilAnonymat      Int             @default(5) @map("seuil_anonymat")
-  createdAt          DateTime        @default(now()) @map("created_at")
+  seuilAnonymat       Int             @default(5) @map("seuil_anonymat")
+  createdAt           DateTime        @default(now()) @map("created_at")
   // Suppression logique. Les enfants (modules, inscriptions, questionnaires,
   // messages) ne sont jamais supprimés en cascade : ils restent auditables.
   // Toute requête applicative doit filtrer `supprimeLe: null` par défaut.
-  supprimeLe         DateTime?       @map("supprime_le")
+  supprimeLe          DateTime?       @map("supprime_le")
 
   cabinet          Cabinet              @relation(fields: [cabinetId], references: [id])
   modules          Module[]
@@ -319,7 +325,7 @@ model SeminaireFormateur {
   // donne accès à tout ce qui concerne CE séminaire pour CE formateur, sans
   // compte ni session (le formateur ne se connecte jamais). Régénérable
   // depuis la fiche séminaire — l'ancien lien cesse alors de fonctionner.
-  codeFormateur String @unique @map("code_formateur")
+  codeFormateur String        @unique @map("code_formateur")
 
   seminaire   Seminaire   @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
   utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)

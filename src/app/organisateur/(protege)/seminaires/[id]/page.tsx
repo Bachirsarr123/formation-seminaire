@@ -5,6 +5,7 @@ import { obtenirSeminaire } from '@/lib/organisateur/seminaires';
 import { obtenirQuestionnaireActifDuSeminaire } from '@/lib/organisateur/questionnaires';
 import { obtenirRecueil } from '@/lib/organisateur/recueil';
 import { obtenirResultatsSeminaire } from '@/lib/organisateur/resultats';
+import { obtenirOuCreerLienEvaluation } from '@/lib/organisateur/lien-evaluation';
 import { LIBELLE_MODALITE, LIBELLE_STATUT_QUESTIONNAIRE, LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import {
@@ -15,7 +16,6 @@ import {
 } from '@/lib/organisateur/diffusion';
 import { construireOrigineRequete } from '@/lib/origine-requete';
 import { dupliquerSeminaireAction, regenererCodeFormateurAction } from './actions';
-import { relancerTousNonRepondantsAction } from './resultats/actions';
 import { BoutonCopier } from './bouton-copier';
 import { BoutonSupprimer } from './bouton-supprimer';
 import { SelecteurStatut } from './selecteur-statut';
@@ -221,56 +221,46 @@ async function SectionQuestionnaire({ seminaireId, cabinetId }: { seminaireId: s
   );
 }
 
-// Rend visible et actionnable ce qui existait déjà (relance individuelle
-// depuis /resultats, lib/notification.ts::envoyerRelanceQuestionnaire) mais
-// restait difficile à trouver — signalé en usage réel ("je ne vois pas
-// comment envoyer le lien"). N'affiche jamais le lien personnel lui-même
-// (jeton participant, voir la note dans resultats/actions.ts) : seul un
-// bouton qui déclenche l'envoi côté serveur, jamais un lien affiché à
-// copier — cohérent avec la règle déjà en place et testée pour
-// listerInscriptionsSeminaire/l'export CSV.
+// Même principe que le recueil de besoins (SectionRecueil/le lien
+// r/{codeAcces} ci-dessous) : un seul lien à copier et diffuser à tous les
+// participants d'un coup — plus besoin de suivre qui a répondu ni de
+// relancer individuellement. Le lien est public (aucune identité requise
+// pour répondre, cohérent avec la Règle 2 : une Soumission n'a de toute
+// façon jamais porté de lien vers un participant), voir
+// lib/questionnaire/public.ts et /e/[codeAcces].
 async function SectionEvaluationChaud({ seminaireId, contexte }: { seminaireId: string; contexte: ContexteOrganisateur }) {
   const vue = await obtenirResultatsSeminaire(contexte.cabinetId, seminaireId, contexte);
   // null : accès refusé (ne devrait pas arriver ici, le reste de la page a
   // déjà vérifié l'accès) ; questionnaireId null : pas encore de
-  // questionnaire créé, rien à relancer tant que SectionQuestionnaire
+  // questionnaire créé, rien à diffuser tant que SectionQuestionnaire
   // ci-dessus n'en a pas un à proposer.
   if (!vue || vue.questionnaireId === null) return null;
 
-  const relancerTous = relancerTousNonRepondantsAction.bind(null, seminaireId);
+  const codeAcces = await obtenirOuCreerLienEvaluation(contexte.cabinetId, seminaireId);
+  if (!codeAcces) return null;
+
+  const origine = construireOrigineRequete(await headers());
+  const lienEvaluation = `${origine}/e/${codeAcces}`;
 
   return (
     <section className="flex flex-col gap-3 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
       <h2 className="text-[length:var(--taille-md)] text-[color:var(--gris-900)]">Évaluation à chaud</h2>
 
-      {vue.nonRepondants.length === 0 ? (
-        <p className="text-[color:var(--gris-700)]">
-          {vue.inscrits > 0
-            ? `Tous les participants confirmés (${vue.inscrits}) ont répondu au questionnaire.`
-            : "Aucun participant confirmé pour l'instant."}
-        </p>
-      ) : (
-        <>
-          <p className="text-[color:var(--gris-700)]">
-            {vue.nonRepondants.length} participant{vue.nonRepondants.length > 1 ? 's' : ''} confirmé
-            {vue.nonRepondants.length > 1 ? 's' : ''} n&apos;{vue.nonRepondants.length > 1 ? 'ont' : 'a'} pas encore répondu.
-          </p>
-          <form action={relancerTous}>
-            <button
-              type="submit"
-              className="inline-flex min-h-[44px] w-fit items-center rounded-[var(--rayon-sm)] bg-[color:var(--couleur-accent)] px-4 text-[color:var(--couleur-accent-contraste)]"
-            >
-              Envoyer le lien du questionnaire {vue.nonRepondants.length > 1 ? 'aux non-répondants' : 'à ce participant'}
-            </button>
-          </form>
-        </>
-      )}
+      <p className="chiffre text-[color:var(--gris-700)]">
+        {vue.totalSoumissions} réponse{vue.totalSoumissions > 1 ? 's' : ''} reçue{vue.totalSoumissions > 1 ? 's' : ''}
+      </p>
+
+      <div className="flex flex-col gap-2">
+        <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">Lien à diffuser aux participants</p>
+        <p className="break-all text-[length:var(--taille-sm)] text-[color:var(--gris-800)]">{lienEvaluation}</p>
+        <BoutonCopier valeur={lienEvaluation} />
+      </div>
 
       <a
         href={`/organisateur/seminaires/${seminaireId}/resultats`}
         className="w-fit text-[length:var(--taille-sm)] text-[color:var(--gris-700)] underline"
       >
-        Voir le détail par participant (relance individuelle, résultats)
+        Voir les résultats
       </a>
     </section>
   );

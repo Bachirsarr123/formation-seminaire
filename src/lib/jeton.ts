@@ -31,6 +31,13 @@ export function genererCodeFormateur(): string {
   return nanoid(21);
 }
 
+// Lien public de l'évaluation à chaud (/e/{codeAcces}) — même registre que
+// codeAccesRecueil : un seul lien, diffusé largement, aucun suivi par
+// personne (contrairement au lien personnel /p/{jeton}).
+export function genererCodeAccesEvaluation(): string {
+  return nanoid(10);
+}
+
 // Code de suivi d'un message anonyme (lot messages) : contrairement aux
 // jetons ci-dessus, celui-ci est SAISI À LA MAIN par un participant qui
 // revient consulter une réponse — 12 caractères (alphabet nanoid par défaut,
