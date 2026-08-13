@@ -17,6 +17,10 @@ interface Props {
   params: Promise<{ codeFormateur: string }>;
 }
 
+// Voir la même note dans /s/[codePublic]/page.tsx : participants, résultats,
+// recueil, CV fraîchement téléversé — jamais une version mise en cache.
+export const dynamic = 'force-dynamic';
+
 // Aucune session, aucun cookie : le code de l'URL EST l'accès (même principe
 // que /rc/{codeConsultation}) — jamais de distinction 403/404, un code
 // inconnu ou périmé (compte désactivé, séminaire supprimé) rend exactement

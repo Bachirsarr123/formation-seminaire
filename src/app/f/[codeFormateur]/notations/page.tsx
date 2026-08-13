@@ -7,6 +7,10 @@ interface Props {
   params: Promise<{ codeFormateur: string }>;
 }
 
+// Voir la même note dans /f/[codeFormateur]/page.tsx : liste des
+// participants et notations déjà saisies, jamais une version mise en cache.
+export const dynamic = 'force-dynamic';
+
 export default async function PageNotationsFormateur({ params }: Props) {
   const { codeFormateur } = await params;
   const contexte = await resoudreContexteLienFormateur(codeFormateur);

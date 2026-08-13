@@ -11,6 +11,10 @@ interface Props {
   params: Promise<{ codeConsultation: string }>;
 }
 
+// Voir la même note dans /s/[codePublic]/page.tsx : le formateur doit
+// toujours voir les dernières réponses reçues, jamais une version figée.
+export const dynamic = 'force-dynamic';
+
 export default async function PageConsultationRecueil({ params }: Props) {
   const { codeConsultation } = await params;
   const recueil = await chargerReponsesRecueil(codeConsultation);

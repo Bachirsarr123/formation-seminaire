@@ -16,6 +16,11 @@ interface Props {
   params: Promise<{ codePublic: string }>;
 }
 
+// Voir la même note dans /s/[codePublic]/page.tsx : cette page gate
+// l'inscription sur l'état ouvert/fermé du séminaire, ne doit jamais
+// servir une version mise en cache.
+export const dynamic = 'force-dynamic';
+
 export default async function PageInscription({ params }: Props) {
   const { codePublic } = await params;
   const resultat = await chargerSeminairePublic(codePublic);

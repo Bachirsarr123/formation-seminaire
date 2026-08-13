@@ -14,6 +14,14 @@ interface Props {
   params: Promise<{ codePublic: string }>;
 }
 
+// Sans API "dynamique" (cookies/headers) et avec un segment dynamique non
+// couvert par generateStaticParams, Next.js pourrait sinon mettre cette
+// page en cache après la première visite (Full Route Cache) — inacceptable
+// ici : état d'inscription, logo/CV fraîchement téléversés, tarif modifié...
+// doivent toujours refléter la base au moment de la requête, jamais une
+// version figée depuis le dernier déploiement.
+export const dynamic = 'force-dynamic';
+
 export default async function PageSeminairePublic({ params }: Props) {
   const { codePublic } = await params;
   const resultat = await chargerSeminairePublic(codePublic);

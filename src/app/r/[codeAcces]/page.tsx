@@ -13,6 +13,10 @@ interface Props {
   params: Promise<{ codeAcces: string }>;
 }
 
+// Voir la même note dans /s/[codePublic]/page.tsx : formulaire actif/inactif,
+// logos, ne doit jamais servir une version mise en cache.
+export const dynamic = 'force-dynamic';
+
 export default async function PageRecueil({ params }: Props) {
   const { codeAcces } = await params;
   const recueil = await chargerRecueilPublic(codeAcces);

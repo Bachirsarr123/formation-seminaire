@@ -9,6 +9,9 @@ interface Props {
   params: Promise<{ codeAcces: string }>;
 }
 
+// Voir la même note dans /s/[codePublic]/page.tsx.
+export const dynamic = 'force-dynamic';
+
 export default async function PageRecueilMerci({ params }: Props) {
   const { codeAcces } = await params;
   const recueil = await chargerRecueilPublic(codeAcces);
