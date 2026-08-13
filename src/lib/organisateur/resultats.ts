@@ -10,23 +10,15 @@ import type { ContexteOrganisateur } from './session';
 // Page résultats (lot 5, partie B). Combine DEUX familles de requêtes qui ne
 // se joignent JAMAIS entre elles au niveau SQL, exactement la frontière de
 // la Règle 2 :
-//   - côté identité (Inscription/Participant) : taux de réponse, liste des
-//     non-répondants pour la relance — « aRepondu est du côté identité de la
-//     cloison, c'est permis » ;
+//   - côté identité (Inscription/Participant) : taux de réponse (inscrits,
+//     repondants) — « aRepondu est du côté identité de la cloison, c'est
+//     permis » ;
 //   - côté anonyme (lib/questionnaire/resultats.ts) : moyennes, distributions,
 //     textes libres.
 // Le résultat assemblé ici en JS ne contient jamais soumissionId, jamais de
 // filtre croisé, jamais l'un des deux ensembles de données recroisé avec
 // l'autre au niveau d'un individu.
 // ============================================================
-
-export interface NonRepondant {
-  participantId: string;
-  nom: string;
-  prenom: string;
-  email: string | null;
-  telephone: string | null;
-}
 
 export interface ComparaisonModele {
   moyenneSeminaire: number;
@@ -44,7 +36,6 @@ export interface VueResultats {
   totalSoumissions: number;
   resultats: ResultatsQuestionnaire | null;
   comparaison: ComparaisonModele | null;
-  nonRepondants: NonRepondant[];
 }
 
 /**
@@ -137,17 +128,8 @@ export async function obtenirResultatsSeminaire(
   const inscriptions = await listerInscriptionsSeminaire(cabinetId, seminaireId, 'CONFIRMEE');
   const inscrits = inscriptions?.length ?? 0;
   const repondants = inscriptions?.filter((i) => i.aRepondu).length ?? 0;
-  const nonRepondants: NonRepondant[] = (inscriptions ?? [])
-    .filter((i) => !i.aRepondu)
-    .map((i) => ({
-      participantId: i.participant.id,
-      nom: i.participant.nom,
-      prenom: i.participant.prenom,
-      email: i.participant.email,
-      telephone: i.participant.telephone,
-    }));
 
-  const base = { seminaireTitre: seminaire.titre, seuilAnonymat: seminaire.seuilAnonymat, inscrits, repondants, nonRepondants };
+  const base = { seminaireTitre: seminaire.titre, seuilAnonymat: seminaire.seuilAnonymat, inscrits, repondants };
 
   const questionnaire = await obtenirQuestionnaireActifDuSeminaire(cabinetId, seminaireId);
   if (!questionnaire) {

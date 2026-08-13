@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { obtenirResultatsSeminaire } from '@/lib/organisateur/resultats';
 import { ResultatsSeminaire } from '@/components/resultats-seminaire';
-import { relancerNonRepondantAction } from './actions';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -36,30 +35,6 @@ export default async function PageResultats({ params }: Props) {
           <a href={`/organisateur/seminaires/${id}/resultats/export-brut.csv`} className={CLASSE_BOUTON_TEXTE}>
             Exporter les réponses brutes anonymisées (CSV)
           </a>
-        </section>
-      ) : null}
-
-      {vue.nonRepondants.length > 0 ? (
-        <section>
-          <h2 className="mb-2 text-[length:var(--taille-md)] text-[color:var(--gris-900)]">
-            Non-répondants (<span className="chiffre">{vue.nonRepondants.length}</span>)
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {vue.nonRepondants.map((p) => (
-              <li key={p.participantId} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--rayon-sm)] bg-[color:var(--gris-050)] p-3">
-                <span className="text-[color:var(--gris-800)]">
-                  {p.prenom} {p.nom}
-                </span>
-                {contexte.role === 'ORGANISATEUR' ? (
-                  <form action={relancerNonRepondantAction.bind(null, id, p.participantId)}>
-                    <button type="submit" className={CLASSE_BOUTON_TEXTE}>
-                      Relancer
-                    </button>
-                  </form>
-                ) : null}
-              </li>
-            ))}
-          </ul>
         </section>
       ) : null}
     </div>
