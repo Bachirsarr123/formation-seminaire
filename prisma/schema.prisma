@@ -57,8 +57,8 @@ model Utilisateur {
   // nullable : les formateurs n'ont pas de mot de passe, ils passent par lien magique
   motDePasseHash String?         @map("mot_de_passe_hash")
   actif          Boolean         @default(true)
-  // CV du formateur (PDF), téléversé depuis l'écran Équipe — chemin relatif
-  // sur le disque du conteneur, même adaptateur de stockage que les supports
+  // CV du formateur (PDF), téléversé depuis l'écran Équipe — porte l'id
+  // d'une ligne FichierStocke, même adaptateur de stockage que les supports
   // de cours (lib/organisateur/stockage-supports.ts). Sans objet pour un
   // compte ORGANISATEUR, mais pas de contrainte CHECK par rôle : un champ
   // simplement jamais renseigné pour ce rôle-là.
@@ -197,8 +197,8 @@ model Seminaire {
   capaciteMax        Int?            @map("capacite_max")
   // Logo de l'entreprise cliente (distinct du logo du cabinet,
   // Cabinet.logoUrl) — affiché à droite sur les pages publiques du
-  // séminaire. Chemin relatif sur le disque du conteneur, même adaptateur de
-  // stockage local que les supports de cours.
+  // séminaire. Porte l'id d'une ligne FichierStocke, même adaptateur de
+  // stockage que les supports de cours.
   logoClientUrl      String?         @map("logo_client_url")
   statut             StatutSeminaire @default(BROUILLON)
   inscriptionOuverte Boolean         @default(false) @map("inscription_ouverte")
@@ -249,9 +249,9 @@ model Module {
 // lib/organisateur/) : un support de cours appartient à un séminaire, pas
 // directement à un cabinet.
 //
-// `urlStockage` : pour l'adaptateur de stockage local (le seul implémenté
-// pour ce lot, voir lib/organisateur/stockage-supports.ts), c'est le chemin
-// relatif du fichier sur le disque du conteneur — PAS une URL publique. Si
+// `urlStockage` : pour l'adaptateur de stockage actuel (en base, table
+// FichierStocke — voir lib/organisateur/stockage-supports.ts), c'est l'id
+// de la ligne FichierStocke qui porte le contenu — PAS une URL publique. Si
 // un adaptateur S3 est branché plus tard, ce même champ portera l'URL/la clé
 // de l'objet distant ; la forme change selon l'adaptateur, jamais le nom du
 // champ ni son rôle (localiser le fichier physique).
@@ -267,15 +267,41 @@ model SupportCours {
   visibleParticipants Boolean   @default(true) @map("visible_participants")
   ordre               Int
   createdAt           DateTime  @default(now()) @map("created_at")
-  // Suppression logique, jamais physique (contrainte du lot) — le fichier
-  // sur disque n'est pas non plus effacé : filet de sécurité en cas de
-  // suppression accidentelle, coût négligeable à l'échelle de ce lot.
+  // Suppression logique, jamais physique (contrainte du lot) — la ligne
+  // FichierStocke référencée n'est pas non plus effacée : filet de sécurité
+  // en cas de suppression accidentelle, coût négligeable à l'échelle de ce lot.
   supprimeLe          DateTime? @map("supprime_le")
 
   seminaire Seminaire @relation(fields: [seminaireId], references: [id], onDelete: Restrict)
 
   @@index([seminaireId])
   @@map("support_cours")
+}
+
+// Stockage EN BASE des fichiers téléversés (supports de cours, logo
+// cabinet, logo client, CV formateur) — remplace le disque local du
+// conteneur, perdu à chaque redéploiement sur le plan gratuit Render (voir
+// POINTS-OUVERTS.md). `contenu` en bytea natif Postgres/Neon, jamais
+// encodé en base64 applicatif : bytea est déjà binaire-safe, un encodage
+// base64 ne ferait que gonfler la taille stockée d'environ un tiers sans
+// aucun bénéfice. Une seule table générique pour les quatre usages plutôt
+// qu'une par type de fichier : même forme (contenu + type + taille), même
+// cycle de vie (jamais modifié après création, remplacé = nouvelle ligne +
+// nouvel id référencé par le parent). Aucune relation déclarée vers ses
+// "propriétaires" (SupportCours.urlStockage, Cabinet.logoUrl,
+// Seminaire.logoClientUrl, Utilisateur.cvUrl) : ces colonnes String
+// portent simplement l'id d'une ligne ici, au même titre qu'elles
+// portaient un chemin disque avant ce lot — l'adaptateur
+// (lib/organisateur/stockage-supports.ts) est le seul point qui connaît
+// cette convention, aucun appelant ne la présuppose.
+model FichierStocke {
+  id            String   @id @default(uuid())
+  contenu       Bytes
+  typeMime      String   @map("type_mime")
+  tailleFichier Int      @map("taille_fichier")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("fichier_stocke")
 }
 
 enum RoleFormateur {

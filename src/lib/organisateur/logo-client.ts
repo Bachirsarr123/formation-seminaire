@@ -2,11 +2,10 @@ import 'server-only';
 import { prisma } from '../prisma';
 import { enregistrerFichierSupport } from './stockage-supports';
 
-// Logo de l'entreprise cliente (Seminaire.logoClientUrl), distinct du logo du
-// cabinet (Cabinet.logoUrl, externe) — mêmes contraintes que les supports de
-// cours, mêmes adaptateur/dossier de stockage local
-// (lib/organisateur/stockage-supports.ts), simplement un type de fichier plus
-// restreint (image uniquement) et une taille plus basse.
+// Logo de l'entreprise cliente (Seminaire.logoClientUrl) — mêmes contraintes
+// que les supports de cours, même adaptateur de stockage en base
+// (lib/organisateur/stockage-supports.ts), simplement un type de fichier
+// plus restreint (image uniquement) et une taille plus basse.
 
 export const PLAFOND_TAILLE_LOGO_OCTETS = 2 * 1024 * 1024; // 2 Mo
 
@@ -29,7 +28,7 @@ export function erreurLogoClientInvalide(typeMime: string, tailleOctets: number)
  * — pas de re-vérification cabinetId ici, même découpage que
  * enregistrerFichierSupport/lireFichierSupport (stockage-supports.ts).
  */
-export async function enregistrerLogoClient(seminaireId: string, nomFichier: string, contenu: Buffer): Promise<void> {
-  const urlStockage = await enregistrerFichierSupport(seminaireId, nomFichier, contenu);
-  await prisma.seminaire.update({ where: { id: seminaireId }, data: { logoClientUrl: urlStockage } });
+export async function enregistrerLogoClient(seminaireId: string, typeMime: string, contenu: Buffer): Promise<void> {
+  const fichierId = await enregistrerFichierSupport(typeMime, contenu);
+  await prisma.seminaire.update({ where: { id: seminaireId }, data: { logoClientUrl: fichierId } });
 }

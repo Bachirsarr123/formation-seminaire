@@ -3,10 +3,10 @@ import { prisma } from '../prisma';
 import { enregistrerFichierSupport } from './stockage-supports';
 
 // Logo du cabinet (Cabinet.logoUrl) — même mécanisme que le logo client
-// (lib/organisateur/logo-client.ts) : stockage local, dossier propre au
-// cabinet (cabinetId), servi par la route publique /cabinet-logo/{cabinetId}
-// plutôt que rendu directement comme URL externe — `logoUrl` ne porte donc
-// que le chemin de stockage relatif, jamais une URL utilisable telle quelle.
+// (lib/organisateur/logo-client.ts) : stockage en base (fichier_stocke),
+// servi par la route publique /cabinet-logo/{cabinetId} plutôt que rendu
+// directement comme URL externe — `logoUrl` ne porte donc que l'id de la
+// ligne fichier_stocke, jamais une URL utilisable telle quelle.
 
 export const PLAFOND_TAILLE_LOGO_CABINET_OCTETS = 2 * 1024 * 1024; // 2 Mo
 
@@ -23,7 +23,7 @@ export function erreurLogoCabinetInvalide(typeMime: string, tailleOctets: number
   return null;
 }
 
-export async function enregistrerLogoCabinet(cabinetId: string, nomFichier: string, contenu: Buffer): Promise<void> {
-  const urlStockage = await enregistrerFichierSupport(cabinetId, nomFichier, contenu);
-  await prisma.cabinet.update({ where: { id: cabinetId }, data: { logoUrl: urlStockage } });
+export async function enregistrerLogoCabinet(cabinetId: string, typeMime: string, contenu: Buffer): Promise<void> {
+  const fichierId = await enregistrerFichierSupport(typeMime, contenu);
+  await prisma.cabinet.update({ where: { id: cabinetId }, data: { logoUrl: fichierId } });
 }

@@ -2,10 +2,9 @@ import 'server-only';
 import { prisma } from '../prisma';
 import { enregistrerFichierSupport, lireFichierSupportOuNull } from './stockage-supports';
 
-// CV formateur (Utilisateur.cvUrl) — même adaptateur de stockage local que
-// les supports de cours et le logo client, dossier propre au compte
-// (utilisateurId, jamais seminaireId : un CV n'est pas rattaché à un
-// séminaire précis, seulement à la personne).
+// CV formateur (Utilisateur.cvUrl) — même adaptateur de stockage en base que
+// les supports de cours et les logos. Toujours un PDF (erreurCvInvalide),
+// le type MIME est donc fixé ici plutôt que threadé depuis l'appelant.
 
 export const PLAFOND_TAILLE_CV_OCTETS = 5 * 1024 * 1024; // 5 Mo
 
@@ -19,20 +18,15 @@ export function erreurCvInvalide(typeMime: string, tailleOctets: number): string
 }
 
 /** `false` si le compte n'existe pas, appartient à un autre cabinet, ou n'est pas un formateur (règle B). */
-export async function enregistrerCvFormateur(
-  cabinetId: string,
-  utilisateurId: string,
-  nomFichier: string,
-  contenu: Buffer,
-): Promise<boolean> {
+export async function enregistrerCvFormateur(cabinetId: string, utilisateurId: string, contenu: Buffer): Promise<boolean> {
   const formateur = await prisma.utilisateur.findFirst({
     where: { id: utilisateurId, cabinetId, role: 'FORMATEUR' },
     select: { id: true },
   });
   if (!formateur) return false;
 
-  const urlStockage = await enregistrerFichierSupport(utilisateurId, nomFichier, contenu);
-  await prisma.utilisateur.update({ where: { id: utilisateurId }, data: { cvUrl: urlStockage } });
+  const fichierId = await enregistrerFichierSupport('application/pdf', contenu);
+  await prisma.utilisateur.update({ where: { id: utilisateurId }, data: { cvUrl: fichierId } });
   return true;
 }
 
@@ -47,10 +41,11 @@ export interface FichierCv {
  * est dérivé de l'identité du formateur, pas du nom de fichier fourni par
  * l'organisateur au moment de l'upload.
  *
- * `null` aussi bien si aucun CV n'a jamais été téléversé que si la ligne en
- * base référence un fichier disparu du disque (plan gratuit Render, disque
- * éphémère — voir stockage-supports.ts) : les deux cas doivent rendre la
- * même réponse « introuvable » à l'appelant, jamais une erreur brute.
+ * `null` aussi bien si aucun CV n'a jamais été téléversé que si `cvUrl`
+ * référence un id introuvable dans `fichier_stocke` (cas hérité de l'ancien
+ * stockage disque, voir lireFichierSupportOuNull) : les deux cas doivent
+ * rendre la même réponse « introuvable » à l'appelant, jamais une erreur
+ * brute.
  */
 export async function obtenirFichierCv(utilisateurId: string): Promise<FichierCv | null> {
   const utilisateur = await prisma.utilisateur.findUnique({
@@ -59,7 +54,7 @@ export async function obtenirFichierCv(utilisateurId: string): Promise<FichierCv
   });
   if (!utilisateur?.cvUrl) return null;
 
-  const contenu = await lireFichierSupportOuNull(utilisateur.cvUrl);
-  if (!contenu) return null;
-  return { nomFichier: `CV - ${utilisateur.prenom} ${utilisateur.nom}.pdf`, contenu };
+  const fichier = await lireFichierSupportOuNull(utilisateur.cvUrl);
+  if (!fichier) return null;
+  return { nomFichier: `CV - ${utilisateur.prenom} ${utilisateur.nom}.pdf`, contenu: fichier.contenu };
 }

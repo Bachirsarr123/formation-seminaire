@@ -65,7 +65,7 @@ export async function televerserLogoClientAction(
   if (!seminaire) return { erreur: 'Séminaire introuvable.' };
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
-  await enregistrerLogoClient(seminaireId, fichier.name, contenu);
+  await enregistrerLogoClient(seminaireId, fichier.type, contenu);
 
   revalidatePath(`/organisateur/seminaires/${seminaireId}/modifier`);
   return {};

@@ -1,6 +1,6 @@
 import 'server-only';
 import { prisma } from '../prisma';
-import { enregistrerFichierSupport, lireFichierSupport } from './stockage-supports';
+import { enregistrerFichierSupport, lireFichierSupportOuNull } from './stockage-supports';
 import type { Direction } from '../questionnaire/editeur';
 
 // ============================================================
@@ -65,9 +65,9 @@ export interface DonneesNouveauSupport {
 }
 
 /**
- * Écrit le fichier sur disque (stockage-supports.ts) UNIQUEMENT après avoir
- * validé taille et type — jamais de fichier orphelin sur disque pour une
- * requête finalement rejetée.
+ * Écrit le fichier en base (stockage-supports.ts) UNIQUEMENT après avoir
+ * validé taille et type — jamais de ligne orpheline pour une requête
+ * finalement rejetée.
  */
 export async function ajouterSupport(
   cabinetId: string,
@@ -92,7 +92,7 @@ export async function ajouterSupport(
     select: { ordre: true },
   });
 
-  const urlStockage = await enregistrerFichierSupport(seminaireId, donnees.nomFichier, donnees.contenu);
+  const urlStockage = await enregistrerFichierSupport(donnees.typeMime, donnees.contenu);
 
   await prisma.supportCours.create({
     data: {
@@ -109,7 +109,7 @@ export async function ajouterSupport(
   return { ok: true };
 }
 
-/** Suppression LOGIQUE (`supprimeLe`) — jamais physique, ni en base ni sur disque (voir schema.prisma). */
+/** Suppression LOGIQUE (`supprimeLe`) — jamais physique, ni la ligne SupportCours ni le FichierStocke qu'elle référence (voir schema.prisma). */
 export async function supprimerSupportLogiquement(cabinetId: string, seminaireId: string, supportId: string): Promise<boolean> {
   if (!(await verifierAccesSeminaire(cabinetId, seminaireId))) return false;
 
@@ -173,6 +173,11 @@ export interface FichierSupport {
  * Téléchargement côté organisateur : aucune vérification de
  * `visibleParticipants` (l'organisateur voit tout ce qu'il a téléversé,
  * visible ou non) — seule l'appartenance au cabinet compte.
+ *
+ * `null` aussi bien si le support n'existe pas que si sa ligne référence un
+ * fichier introuvable (cas hérité de l'ancien stockage disque, voir
+ * lireFichierSupportOuNull) : les deux rendent la même réponse
+ * « introuvable », jamais une erreur brute.
  */
 export async function obtenirFichierSupportOrganisateur(
   cabinetId: string,
@@ -187,6 +192,7 @@ export async function obtenirFichierSupportOrganisateur(
   });
   if (!support) return null;
 
-  const contenu = await lireFichierSupport(support.urlStockage);
-  return { nomFichier: support.nomFichier, typeMime: support.typeMime, contenu };
+  const fichier = await lireFichierSupportOuNull(support.urlStockage);
+  if (!fichier) return null;
+  return { nomFichier: support.nomFichier, typeMime: support.typeMime, contenu: fichier.contenu };
 }

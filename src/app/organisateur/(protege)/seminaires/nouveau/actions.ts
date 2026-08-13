@@ -37,7 +37,7 @@ export async function creerSeminaireAction(
 
   if (logoFourni) {
     const contenu = Buffer.from(await (logoClient as File).arrayBuffer());
-    await enregistrerLogoClient(seminaire.id, (logoClient as File).name, contenu);
+    await enregistrerLogoClient(seminaire.id, (logoClient as File).type, contenu);
   }
 
   redirect(`/organisateur/seminaires/${seminaire.id}`);

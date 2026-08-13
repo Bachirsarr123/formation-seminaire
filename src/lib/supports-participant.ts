@@ -1,6 +1,6 @@
 import 'server-only';
 import { prisma } from './prisma';
-import { lireFichierSupport } from './organisateur/stockage-supports';
+import { lireFichierSupportOuNull } from './organisateur/stockage-supports';
 import type { FichierSupport } from './organisateur/supports';
 
 export interface SupportVisible {
@@ -38,6 +38,7 @@ export async function obtenirFichierSupportVisible(seminaireId: string, supportI
   });
   if (!support) return null;
 
-  const contenu = await lireFichierSupport(support.urlStockage);
-  return { nomFichier: support.nomFichier, typeMime: support.typeMime, contenu };
+  const fichier = await lireFichierSupportOuNull(support.urlStockage);
+  if (!fichier) return null;
+  return { nomFichier: support.nomFichier, typeMime: support.typeMime, contenu: fichier.contenu };
 }

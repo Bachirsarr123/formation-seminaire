@@ -68,7 +68,7 @@ export async function televerserCvAction(
   if (erreurValidation) return { erreur: erreurValidation };
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
-  const ok = await enregistrerCvFormateur(contexte.cabinetId, utilisateurId, fichier.name, contenu);
+  const ok = await enregistrerCvFormateur(contexte.cabinetId, utilisateurId, contenu);
   if (!ok) return { erreur: 'Formateur introuvable.' };
 
   revalidatePath('/organisateur/equipe');
@@ -94,7 +94,7 @@ export async function televerserLogoCabinetAction(
   if (erreurValidation) return { erreur: erreurValidation };
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
-  await enregistrerLogoCabinet(contexte.cabinetId, fichier.name, contenu);
+  await enregistrerLogoCabinet(contexte.cabinetId, fichier.type, contenu);
 
   revalidatePath('/organisateur/equipe');
   return {};
