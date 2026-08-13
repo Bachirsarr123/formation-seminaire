@@ -55,11 +55,19 @@ export async function envoyerRappelSeminaire(destinataire: Destinataire, titreSe
   });
 }
 
-export async function envoyerRelanceQuestionnaire(destinataire: Destinataire, titreSeminaire: string): Promise<void> {
+// `lien` : le lien personnel (/p/{jeton}) du destinataire — sans lui, la
+// relance ne donne à la personne aucun moyen concret de répondre (bug
+// corrigé : ce paramètre manquait, la relance ne contenait qu'un texte sans
+// aucun lien cliquable). Reste transactionnel comme envoyerLienInscription :
+// c'est le MÊME lien personnel déjà envoyé à l'inscription, pas une nouvelle
+// donnée — aucune fuite vers l'espace organisateur, qui ne voit jamais ce
+// lien (voir relancerNonRepondantAction, qui le lit en base uniquement pour
+// le transmettre ici, jamais pour l'afficher).
+export async function envoyerRelanceQuestionnaire(destinataire: Destinataire, titreSeminaire: string, lien: string): Promise<void> {
   await adaptateurActif.envoyer({
     destinataire,
     sujet: `Votre avis compte — ${titreSeminaire}`,
-    corps: `Il ne vous reste que quelques minutes pour évaluer « ${titreSeminaire} ».`,
+    corps: `Il ne vous reste que quelques minutes pour évaluer « ${titreSeminaire} ». Votre lien personnel : ${lien}`,
   });
 }
 
