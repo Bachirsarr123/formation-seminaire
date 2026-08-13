@@ -133,9 +133,9 @@ describe('Résultats — accès organisateur/formateur et exports', () => {
     expect(lignes).toHaveLength(1 + soumissions.length);
   });
 
-  it("aucun résultat exportable en dessous du seuil d'anonymat (les deux exports)", async () => {
+  it('aucun résultat exportable avant la première réponse (les deux exports) — même règle de visionnage que le recueil de besoins : pas de seuil, mais rien à montrer tant que personne n\'a répondu', async () => {
     const { cabinet, organisateur } = await creerCabinetAvecUtilisateurs();
-    const { seminaire } = await creerSeminaireAvecQuestionnaire(cabinet.id, '2026-08-01', 4);
+    const { seminaire } = await creerSeminaireAvecQuestionnaire(cabinet.id, '2026-08-01', 0);
     const contexte = { utilisateurId: organisateur.id, cabinetId: cabinet.id, role: RoleUtilisateur.ORGANISATEUR };
 
     expect(await genererCsvResultatsAgreges(cabinet.id, seminaire.id, contexte)).toBeNull();
@@ -144,6 +144,17 @@ describe('Résultats — accès organisateur/formateur et exports', () => {
     const vue = await obtenirResultatsSeminaire(cabinet.id, seminaire.id, contexte);
     expect(vue?.visible).toBe(false);
     expect(vue?.resultats).toBeNull();
+  });
+
+  it('les résultats sont visibles dès la première réponse, sans attendre le seuil configuré sur le séminaire', async () => {
+    const { cabinet, organisateur } = await creerCabinetAvecUtilisateurs();
+    const { seminaire } = await creerSeminaireAvecQuestionnaire(cabinet.id, '2026-08-02', 1);
+    const contexte = { utilisateurId: organisateur.id, cabinetId: cabinet.id, role: RoleUtilisateur.ORGANISATEUR };
+
+    const vue = await obtenirResultatsSeminaire(cabinet.id, seminaire.id, contexte);
+    expect(vue?.visible).toBe(true);
+    expect(vue?.resultats).not.toBeNull();
+    expect(await genererCsvResultatsAgreges(cabinet.id, seminaire.id, contexte)).not.toBeNull();
   });
 });
 

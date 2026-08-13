@@ -20,16 +20,7 @@ export function ResultatsSeminaire({ vue }: { vue: VueResultats }) {
       </p>
 
       {!vue.visible ? (
-        <div className="flex flex-col gap-2 rounded-[var(--rayon-md)] bg-[color:var(--gris-050)] p-4">
-          <p className="text-[color:var(--gris-800)]">
-            <span className="chiffre">{vue.totalSoumissions}</span> réponse{vue.totalSoumissions > 1 ? 's' : ''} reçue
-            {vue.totalSoumissions > 1 ? 's' : ''} sur un seuil de <span className="chiffre">{vue.seuilAnonymat}</span>.
-          </p>
-          <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-            Les résultats ne s&apos;affichent qu&apos;à partir de {vue.seuilAnonymat} réponses, pour qu&apos;aucune
-            réponse individuelle ne reste identifiable dans un petit groupe.
-          </p>
-        </div>
+        <p className="text-[color:var(--gris-700)]">Aucune réponse pour l&apos;instant.</p>
       ) : (
         <>
           {vue.comparaison ? (

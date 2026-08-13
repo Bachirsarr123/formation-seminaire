@@ -155,7 +155,11 @@ export async function obtenirResultatsSeminaire(
   }
 
   const totalSoumissions = await prisma.soumission.count({ where: { questionnaireId: questionnaire.id } });
-  const visible = totalSoumissions >= seminaire.seuilAnonymat;
+  // Même règle de visionnage que le recueil de besoins (lib/organisateur/recueil.ts) :
+  // aucun seuil d'attente, les résultats apparaissent dès la première réponse.
+  // `seuilAnonymat` reste utilisé ailleurs (messages anonymes, éligibilité d'un
+  // séminaire précédent à la comparaison ci-dessus) mais plus pour cet écran.
+  const visible = totalSoumissions >= 1;
 
   if (!visible) {
     return { ...base, questionnaireId: questionnaire.id, visible: false, totalSoumissions, resultats: null, comparaison: null };
@@ -179,9 +183,9 @@ export async function obtenirResultatsSeminaire(
 
 /**
  * Renvoie `null` si le séminaire est introuvable/hors cabinet/hors périmètre
- * formateur, ou si le seuil d'anonymat n'est pas atteint — même garde que
- * l'écran, pour qu'aucun export ne contourne ce que la page refuse déjà
- * d'afficher.
+ * formateur, ou si aucune réponse n'a encore été reçue — même garde que
+ * l'écran (voir `visible` ci-dessus), pour qu'aucun export ne contourne ce
+ * que la page refuse déjà d'afficher.
  */
 async function questionnaireExportable(
   cabinetId: string,
@@ -195,7 +199,7 @@ async function questionnaireExportable(
   if (!questionnaire) return null;
 
   const total = await prisma.soumission.count({ where: { questionnaireId: questionnaire.id } });
-  if (total < seminaire.seuilAnonymat) return null;
+  if (total < 1) return null;
 
   return { questionnaireId: questionnaire.id };
 }

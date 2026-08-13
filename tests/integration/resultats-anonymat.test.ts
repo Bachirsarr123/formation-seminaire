@@ -47,26 +47,28 @@ async function creerQuestionnaireAvecSoumissions(nbSoumissions: number) {
   return { cabinet, seminaire, questionnaire, qNote, qTexte, soumissionIds };
 }
 
-describe("Résultats du questionnaire d'évaluation — règles d'anonymat (non négociables)", () => {
-  it('Règle 1 — en dessous du seuil (4 réponses sur 5), le total est connu mais aucun résultat individuel ne doit être exploité', async () => {
-    const { questionnaire, seminaire } = await creerQuestionnaireAvecSoumissions(4);
+// Le seuil d'attente avant affichage a été retiré (les résultats de
+// l'évaluation suivent désormais la même règle de visionnage que le recueil
+// de besoins : visibles dès la première réponse, voir
+// lib/organisateur/resultats.ts). Ce qui reste non négociable, et que cette
+// suite vérifie toujours, c'est que même visibles, les résultats ne
+// permettent jamais de remonter à un individu (Règle 2 : zone cloisonnée,
+// aucun lien vers l'identité, ni au niveau du schéma ni du calcul).
+describe("Résultats du questionnaire d'évaluation — protections structurelles (non négociables)", () => {
+  it('les résultats sont calculables et corrects dès la première réponse', async () => {
+    const { questionnaire } = await creerQuestionnaireAvecSoumissions(1);
 
     const total = await prisma.soumission.count({ where: { questionnaireId: questionnaire.id } });
+    expect(total).toBe(1);
 
-    // C'est exactement la comparaison que l'orchestrateur organisateur
-    // (obtenirResultatsSeminaire) doit faire avant d'exposer quoi que ce
-    // soit : en dessous du seuil, seul `total` doit être lu par l'appelant,
-    // jamais calculerResultatsQuestionnaire.
-    expect(total).toBe(4);
-    expect(total < seminaire.seuilAnonymat).toBe(true);
+    const resultats = await calculerResultatsQuestionnaire(questionnaire.id);
+    expect(resultats.questionsFermees).toHaveLength(1);
+    expect(resultats.questionsFermees[0]!.moyenne).toBe(1);
+    expect(resultats.questionsFermees[0]!.nbReponses).toBe(1);
   });
 
-  it('Règle 1 — au seuil (5e réponse), les résultats deviennent calculables et corrects', async () => {
-    const { questionnaire, seminaire } = await creerQuestionnaireAvecSoumissions(5);
-
-    const total = await prisma.soumission.count({ where: { questionnaireId: questionnaire.id } });
-    expect(total).toBe(5);
-    expect(total >= seminaire.seuilAnonymat).toBe(true);
+  it('avec plusieurs réponses, les résultats agrégés restent corrects', async () => {
+    const { questionnaire } = await creerQuestionnaireAvecSoumissions(5);
 
     const resultats = await calculerResultatsQuestionnaire(questionnaire.id);
     expect(resultats.questionsFermees).toHaveLength(1);
