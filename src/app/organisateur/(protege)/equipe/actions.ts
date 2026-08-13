@@ -2,8 +2,21 @@
 
 import { revalidatePath } from 'next/cache';
 import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
-import { analyserFormulaireFormateur } from '@/lib/organisateur/formulaire-equipe';
-import { EmailDejaUtiliseError, creerFormateur, desactiverCompte } from '@/lib/organisateur/equipe';
+import {
+  analyserFormulaireFormateur,
+  analyserFormulaireModification,
+  analyserFormulaireOrganisateur,
+} from '@/lib/organisateur/formulaire-equipe';
+import {
+  DernierOrganisateurActifError,
+  EmailDejaUtiliseError,
+  SuppressionImpossibleError,
+  creerFormateur,
+  creerOrganisateur,
+  desactiverCompte,
+  modifierMembre,
+  supprimerMembre,
+} from '@/lib/organisateur/equipe';
 import { enregistrerCvFormateur, erreurCvInvalide } from '@/lib/organisateur/cv-formateur';
 import { enregistrerLogoCabinet, erreurLogoCabinetInvalide } from '@/lib/organisateur/logo-cabinet';
 
@@ -34,6 +47,82 @@ export async function creerFormateurAction(
 
   revalidatePath('/organisateur/equipe');
   return { succes: true };
+}
+
+export async function creerOrganisateurAction(
+  _etatPrecedent: EtatFormulaireFormateur,
+  formData: FormData,
+): Promise<EtatFormulaireFormateur> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+
+  const { donnees, erreur } = analyserFormulaireOrganisateur(formData);
+  if (erreur || !donnees) return { erreur: erreur ?? 'Formulaire invalide.' };
+
+  try {
+    await creerOrganisateur(contexte.cabinetId, donnees);
+  } catch (e) {
+    if (e instanceof EmailDejaUtiliseError) return { erreur: e.message };
+    throw e;
+  }
+
+  revalidatePath('/organisateur/equipe');
+  return { succes: true };
+}
+
+export interface EtatModificationMembre {
+  erreur?: string;
+  succes?: boolean;
+}
+
+export async function modifierMembreAction(
+  utilisateurId: string,
+  _etatPrecedent: EtatModificationMembre,
+  formData: FormData,
+): Promise<EtatModificationMembre> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+
+  const { donnees, erreur } = analyserFormulaireModification(formData);
+  if (erreur || !donnees) return { erreur: erreur ?? 'Formulaire invalide.' };
+
+  try {
+    const ok = await modifierMembre(contexte.cabinetId, utilisateurId, donnees);
+    if (!ok) return { erreur: 'Compte introuvable.' };
+  } catch (e) {
+    if (e instanceof EmailDejaUtiliseError) return { erreur: e.message };
+    throw e;
+  }
+
+  revalidatePath('/organisateur/equipe');
+  return { succes: true };
+}
+
+export interface EtatSuppressionMembre {
+  erreur?: string;
+}
+
+// Contrairement à desactiverCompteAction (jamais d'erreur attendue en usage
+// normal, voir plus bas), la suppression peut légitimement échouer de deux
+// façons prévisibles (dernier organisateur actif, données associées
+// protégées) — useActionState côté appelant pour afficher ce message au lieu
+// de le laisser remonter à error.tsx comme une erreur inattendue.
+export async function supprimerMembreAction(
+  utilisateurId: string,
+  _etatPrecedent: EtatSuppressionMembre,
+): Promise<EtatSuppressionMembre> {
+  const contexte = await exigerContexteOrganisateur(['ORGANISATEUR']);
+
+  try {
+    const ok = await supprimerMembre(contexte.cabinetId, utilisateurId, contexte.utilisateurId);
+    if (!ok) return { erreur: 'Compte introuvable.' };
+  } catch (e) {
+    if (e instanceof DernierOrganisateurActifError || e instanceof SuppressionImpossibleError) {
+      return { erreur: e.message };
+    }
+    throw e;
+  }
+
+  revalidatePath('/organisateur/equipe');
+  return {};
 }
 
 // Pas de useActionState côté appelant : le bouton ne s'affiche jamais sur
@@ -68,7 +157,16 @@ export async function televerserCvAction(
   if (erreurValidation) return { erreur: erreurValidation };
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
-  const ok = await enregistrerCvFormateur(contexte.cabinetId, utilisateurId, contenu);
+  let ok: boolean;
+  try {
+    ok = await enregistrerCvFormateur(contexte.cabinetId, utilisateurId, contenu);
+  } catch (e) {
+    // Jamais une page blanche pour un échec d'écriture (ex. la table de
+    // stockage pas encore migrée en production) — un message clair, gardé
+    // dans le formulaire, avec la possibilité de réessayer immédiatement.
+    console.error('televerserCvAction: échec enregistrerCvFormateur', e);
+    return { erreur: "Le téléversement a échoué. Réessayez dans un instant — si ça persiste, prévenez l'équipe technique." };
+  }
   if (!ok) return { erreur: 'Formateur introuvable.' };
 
   revalidatePath('/organisateur/equipe');
@@ -94,7 +192,12 @@ export async function televerserLogoCabinetAction(
   if (erreurValidation) return { erreur: erreurValidation };
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
-  await enregistrerLogoCabinet(contexte.cabinetId, fichier.type, contenu);
+  try {
+    await enregistrerLogoCabinet(contexte.cabinetId, fichier.type, contenu);
+  } catch (e) {
+    console.error('televerserLogoCabinetAction: échec enregistrerLogoCabinet', e);
+    return { erreur: "Le téléversement a échoué. Réessayez dans un instant — si ça persiste, prévenez l'équipe technique." };
+  }
 
   revalidatePath('/organisateur/equipe');
   return {};

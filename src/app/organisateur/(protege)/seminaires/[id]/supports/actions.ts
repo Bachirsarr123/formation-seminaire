@@ -42,12 +42,18 @@ export async function ajouterSupportAction(
   const titre = String(formData.get('titre') ?? '').trim();
   const contenu = Buffer.from(await fichier.arrayBuffer());
 
-  const resultat = await ajouterSupport(contexte.cabinetId, seminaireId, {
-    titre: titre || fichier.name,
-    nomFichier: fichier.name,
-    typeMime: fichier.type,
-    contenu,
-  });
+  let resultat;
+  try {
+    resultat = await ajouterSupport(contexte.cabinetId, seminaireId, {
+      titre: titre || fichier.name,
+      nomFichier: fichier.name,
+      typeMime: fichier.type,
+      contenu,
+    });
+  } catch (e) {
+    console.error('ajouterSupportAction: échec ajouterSupport', e);
+    return { erreur: "Le téléversement a échoué. Réessayez dans un instant — si ça persiste, prévenez l'équipe technique." };
+  }
   if (!resultat.ok) return { erreur: resultat.erreur };
 
   revalidatePath(`/organisateur/seminaires/${seminaireId}/supports`);

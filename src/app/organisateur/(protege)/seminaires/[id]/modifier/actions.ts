@@ -65,7 +65,12 @@ export async function televerserLogoClientAction(
   if (!seminaire) return { erreur: 'Séminaire introuvable.' };
 
   const contenu = Buffer.from(await fichier.arrayBuffer());
-  await enregistrerLogoClient(seminaireId, fichier.type, contenu);
+  try {
+    await enregistrerLogoClient(seminaireId, fichier.type, contenu);
+  } catch (e) {
+    console.error('televerserLogoClientAction: échec enregistrerLogoClient', e);
+    return { erreur: "Le téléversement a échoué. Réessayez dans un instant — si ça persiste, prévenez l'équipe technique." };
+  }
 
   revalidatePath(`/organisateur/seminaires/${seminaireId}/modifier`);
   return {};

@@ -36,8 +36,16 @@ export async function creerSeminaireAction(
   }
 
   if (logoFourni) {
-    const contenu = Buffer.from(await (logoClient as File).arrayBuffer());
-    await enregistrerLogoClient(seminaire.id, (logoClient as File).type, contenu);
+    try {
+      const contenu = Buffer.from(await (logoClient as File).arrayBuffer());
+      await enregistrerLogoClient(seminaire.id, (logoClient as File).type, contenu);
+    } catch (e) {
+      // Le séminaire est déjà créé à ce stade : un échec du logo ne doit
+      // jamais faire planter toute la page ni cacher que la création a
+      // réussi — l'organisateur pourra téléverser le logo depuis la page
+      // Modifier.
+      console.error('creerSeminaireAction: échec enregistrerLogoClient', e);
+    }
   }
 
   redirect(`/organisateur/seminaires/${seminaire.id}`);

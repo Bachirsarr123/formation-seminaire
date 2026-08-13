@@ -53,7 +53,8 @@ export function FormulaireCreerFormateur() {
       </div>
 
       <p className="text-[length:var(--taille-sm)] text-[color:var(--gris-600)]">
-        Aucun mot de passe à définir : ce compte se connectera via un lien magique envoyé à cette adresse.
+        Aucun mot de passe à définir : ce formateur accède à ses séminaires via un lien direct, généré depuis chaque
+        fiche séminaire, sans connexion.
       </p>
 
       <div className="flex gap-3">

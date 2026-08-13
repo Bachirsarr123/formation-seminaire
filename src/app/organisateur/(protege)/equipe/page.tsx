@@ -2,7 +2,10 @@ import { exigerContexteOrganisateur } from '@/lib/organisateur/session';
 import { listerEquipe } from '@/lib/organisateur/equipe';
 import { prisma } from '@/lib/prisma';
 import { FormulaireCreerFormateur } from './formulaire-creer-formateur';
+import { FormulaireCreerOrganisateur } from './formulaire-creer-organisateur';
 import { BoutonDesactiver } from './bouton-desactiver';
+import { BoutonModifierMembre } from './bouton-modifier-membre';
+import { BoutonSupprimerMembre } from './bouton-supprimer-membre';
 import { FormulaireCvFormateur } from './formulaire-cv-formateur';
 import { FormulaireLogoCabinet } from './formulaire-logo-cabinet';
 import { televerserCvAction, televerserLogoCabinetAction } from './actions';
@@ -42,7 +45,10 @@ export default async function PageEquipe() {
         <FormulaireLogoCabinet action={televerserLogoCabinetAction} aDejaUnLogo={cabinet.logoUrl !== null} />
       </section>
 
-      <FormulaireCreerFormateur />
+      <div className="flex flex-wrap gap-3">
+        <FormulaireCreerFormateur />
+        <FormulaireCreerOrganisateur />
+      </div>
 
       {/* min-w-0 : voir le même commentaire sur le tableau participants —
           débordement horizontal trouvé à 320px/zoom 200% (étape 8). */}
@@ -82,12 +88,22 @@ export default async function PageEquipe() {
                   ) : null}
                 </td>
                 <td className="p-2">
-                  {/* Jamais sur sa propre ligne : voir AutoDesactivationError
-                      (lib/organisateur/equipe.ts), dont ceci est la première
-                      ligne de défense côté UI. */}
-                  {membre.actif && membre.id !== contexte.utilisateurId ? (
-                    <BoutonDesactiver utilisateurId={membre.id} />
-                  ) : null}
+                  <div className="flex flex-col items-start gap-1">
+                    <BoutonModifierMembre
+                      utilisateurId={membre.id}
+                      nom={membre.nom}
+                      prenom={membre.prenom}
+                      email={membre.email}
+                    />
+                    {/* Désactiver et Supprimer : jamais sur sa propre ligne —
+                        voir AutoDesactivationError/AutoSuppressionError
+                        (lib/organisateur/equipe.ts), dont ceci est la
+                        première ligne de défense côté UI. */}
+                    {membre.actif && membre.id !== contexte.utilisateurId ? (
+                      <BoutonDesactiver utilisateurId={membre.id} />
+                    ) : null}
+                    {membre.id !== contexte.utilisateurId ? <BoutonSupprimerMembre utilisateurId={membre.id} /> : null}
+                  </div>
                 </td>
               </tr>
             ))}

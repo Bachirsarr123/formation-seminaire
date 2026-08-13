@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { analyserFormulaireFormateur } from '../../src/lib/organisateur/formulaire-equipe';
+import {
+  analyserFormulaireFormateur,
+  analyserFormulaireModification,
+  analyserFormulaireOrganisateur,
+} from '../../src/lib/organisateur/formulaire-equipe';
 
 function fd(entrees: [string, string][]): FormData {
   const f = new FormData();
@@ -56,5 +60,60 @@ describe('analyserFormulaireFormateur', () => {
     expect(resultat.donnees?.nom).toBe('Camara');
     expect(resultat.donnees?.prenom).toBe('Issa Modou');
     expect(resultat.donnees?.email).toBe('issa.camara@meridien-formation.test');
+  });
+});
+
+describe('analyserFormulaireOrganisateur', () => {
+  const CHAMPS_AVEC_MOT_DE_PASSE: [string, string][] = [
+    ...CHAMPS_VALIDES,
+    ['motDePasse', 'un-mot-de-passe-solide'],
+    ['confirmation', 'un-mot-de-passe-solide'],
+  ];
+
+  it('accepte un formulaire valide', () => {
+    const resultat = analyserFormulaireOrganisateur(fd(CHAMPS_AVEC_MOT_DE_PASSE));
+    expect(resultat.erreur).toBeUndefined();
+    expect(resultat.donnees).toEqual({
+      nom: 'Camara',
+      prenom: 'Issa',
+      email: 'issa.camara@meridien-formation.test',
+      motDePasse: 'un-mot-de-passe-solide',
+    });
+  });
+
+  it('rejette un mot de passe trop court', () => {
+    const champs = CHAMPS_AVEC_MOT_DE_PASSE.map(([k, v]): [string, string] =>
+      k === 'motDePasse' || k === 'confirmation' ? [k, 'court'] : [k, v],
+    );
+    expect(analyserFormulaireOrganisateur(fd(champs)).erreur).toMatch(/12 caractères/);
+  });
+
+  it('rejette une confirmation qui ne correspond pas', () => {
+    const champs = CHAMPS_AVEC_MOT_DE_PASSE.map(([k, v]): [string, string] =>
+      k === 'confirmation' ? [k, 'autre-chose-de-different'] : [k, v],
+    );
+    expect(analyserFormulaireOrganisateur(fd(champs)).erreur).toMatch(/correspondent pas/);
+  });
+
+  it('rejette un nom vide, comme pour un formateur', () => {
+    const champs = CHAMPS_AVEC_MOT_DE_PASSE.filter(([k]) => k !== 'nom');
+    expect(analyserFormulaireOrganisateur(fd(champs)).erreur).toBeTruthy();
+  });
+});
+
+describe('analyserFormulaireModification', () => {
+  it('accepte un formulaire valide (mêmes règles que la création, sans mot de passe)', () => {
+    const resultat = analyserFormulaireModification(fd(CHAMPS_VALIDES));
+    expect(resultat.erreur).toBeUndefined();
+    expect(resultat.donnees).toEqual({
+      nom: 'Camara',
+      prenom: 'Issa',
+      email: 'issa.camara@meridien-formation.test',
+    });
+  });
+
+  it('rejette un e-mail mal formé', () => {
+    const champs = CHAMPS_VALIDES.map(([k, v]): [string, string] => (k === 'email' ? [k, 'pas-un-email'] : [k, v]));
+    expect(analyserFormulaireModification(fd(champs)).erreur).toBeTruthy();
   });
 });
