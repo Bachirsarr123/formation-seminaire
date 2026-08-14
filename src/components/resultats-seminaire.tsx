@@ -1,6 +1,7 @@
 import type { VueResultats } from '@/lib/organisateur/resultats';
 import { BarreDistribution } from './barre-distribution';
 import { ListeReponsesOuvertes } from './liste-reponses-ouvertes';
+import { DiagrammeRecapitulatif } from './diagramme-recapitulatif';
 
 // Partie anonyme des résultats (comparaison, moyennes par module, questions
 // fermées/ouvertes), partagée entre la page organisateur/formateur
@@ -87,6 +88,8 @@ export function ResultatsSeminaire({ vue }: { vue: VueResultats }) {
               ))}
             </section>
           ) : null}
+
+          {vue.resultats ? <DiagrammeRecapitulatif questions={vue.resultats.questionsFermees} /> : null}
         </>
       )}
     </div>

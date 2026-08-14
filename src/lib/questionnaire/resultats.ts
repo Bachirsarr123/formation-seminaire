@@ -28,6 +28,12 @@ export interface ResultatQuestionFermee {
   type: TypeQuestion;
   moduleId: string | null;
   moyenne: number | null;
+  // Moyenne ramenée sur 0-100, bornes propres au type de question (ex.
+  // NOTE_10 min 1/max 10, OUI_NON min 0/max 1) — permet de comparer entre
+  // elles des questions notées sur des échelles différentes (diagramme
+  // récapitulatif, en bas de la page résultats). `null` pour QCM (pas de
+  // moyenne : des choix non ordonnés n'ont pas de bornes numériques).
+  moyennePourcentage: number | null;
   distribution: DistributionValeur[];
   sansOpinion: number;
   nbReponses: number;
@@ -91,9 +97,9 @@ function agregerQuestionNumerique(
   type: TypeQuestion,
   options: unknown,
   reponses: ReponseFermeeBrute[],
-): Pick<ResultatQuestionFermee, 'moyenne' | 'distribution' | 'sansOpinion' | 'nbReponses'> {
+): Pick<ResultatQuestionFermee, 'moyenne' | 'moyennePourcentage' | 'distribution' | 'sansOpinion' | 'nbReponses'> {
   const bornes = bornesQuestion(type);
-  if (!bornes) return { moyenne: null, distribution: [], sansOpinion: 0, nbReponses: 0 };
+  if (!bornes) return { moyenne: null, moyennePourcentage: null, distribution: [], sansOpinion: 0, nbReponses: 0 };
 
   let sansOpinion = 0;
   const valeurs: number[] = [];
@@ -117,15 +123,17 @@ function agregerQuestionNumerique(
   }));
 
   const moyenne = valeurs.length > 0 ? valeurs.reduce((a, b) => a + b, 0) / valeurs.length : null;
+  const moyennePourcentage =
+    moyenne !== null ? Math.round(((moyenne - bornes.min) / (bornes.max - bornes.min)) * 100) : null;
 
-  return { moyenne, distribution, sansOpinion, nbReponses: valeurs.length };
+  return { moyenne, moyennePourcentage, distribution, sansOpinion, nbReponses: valeurs.length };
 }
 
 /** QCM_UNIQUE/QCM_MULTIPLE : pas de moyenne (choix non ordonnés), distribution en % des répondants (pas des choix — une personne peut cocher plusieurs cases en CHOIX_MULTIPLE). */
 function agregerQuestionQcm(
   options: unknown,
   reponses: ReponseFermeeBrute[],
-): Pick<ResultatQuestionFermee, 'moyenne' | 'distribution' | 'sansOpinion' | 'nbReponses'> {
+): Pick<ResultatQuestionFermee, 'moyenne' | 'moyennePourcentage' | 'distribution' | 'sansOpinion' | 'nbReponses'> {
   const choix = choixQcm(options);
   const compteurs = new Map(choix.map((c) => [c.id, 0]));
   let nbRepondants = 0;
@@ -147,7 +155,7 @@ function agregerQuestionQcm(
     pourcentage: nbRepondants > 0 ? Math.round(((compteurs.get(c.id) ?? 0) / nbRepondants) * 100) : 0,
   }));
 
-  return { moyenne: null, distribution, sansOpinion: 0, nbReponses: nbRepondants };
+  return { moyenne: null, moyennePourcentage: null, distribution, sansOpinion: 0, nbReponses: nbRepondants };
 }
 
 export async function calculerResultatsQuestionnaire(questionnaireId: string): Promise<ResultatsQuestionnaire> {
