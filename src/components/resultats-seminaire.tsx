@@ -10,16 +10,8 @@ import { DiagrammeRecapitulatif } from './diagramme-recapitulatif';
 // N'inclut délibérément PAS les non-répondants ni les exports CSV : ce sont
 // des extras propres à l'espace organisateur, pas au lien formateur.
 export function ResultatsSeminaire({ vue }: { vue: VueResultats }) {
-  const tauxReponse = vue.inscrits > 0 ? Math.round((vue.repondants / vue.inscrits) * 100) : null;
-
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-[color:var(--gris-700)]">
-        <span className="chiffre">{vue.repondants}</span> répondant{vue.repondants > 1 ? 's' : ''} sur{' '}
-        <span className="chiffre">{vue.inscrits}</span> inscrit{vue.inscrits > 1 ? 's' : ''}
-        {tauxReponse !== null ? <span className="chiffre"> ({tauxReponse}%)</span> : null}
-      </p>
-
       {!vue.visible ? (
         <p className="text-[color:var(--gris-700)]">Aucune réponse pour l&apos;instant.</p>
       ) : (

@@ -1,23 +1,14 @@
 import 'server-only';
 import { prisma } from '../prisma';
 import { melangerAleatoirement } from '../anonymat';
-import { listerInscriptionsSeminaire } from './participants';
 import { obtenirQuestionnaireActifDuSeminaire } from './questionnaires';
 import { calculerResultatsQuestionnaire, type ResultatsQuestionnaire } from '../questionnaire/resultats';
 import type { ContexteOrganisateur } from './session';
 
 // ============================================================
-// Page résultats (lot 5, partie B). Combine DEUX familles de requêtes qui ne
-// se joignent JAMAIS entre elles au niveau SQL, exactement la frontière de
-// la Règle 2 :
-//   - côté identité (Inscription/Participant) : taux de réponse (inscrits,
-//     repondants) — « aRepondu est du côté identité de la cloison, c'est
-//     permis » ;
-//   - côté anonyme (lib/questionnaire/resultats.ts) : moyennes, distributions,
-//     textes libres.
-// Le résultat assemblé ici en JS ne contient jamais soumissionId, jamais de
-// filtre croisé, jamais l'un des deux ensembles de données recroisé avec
-// l'autre au niveau d'un individu.
+// Page résultats (lot 5, partie B) — zone cloisonnée au même titre que
+// lib/questionnaire/resultats.ts (Règle 2) : ne lit jamais Inscription ni
+// Participant, uniquement Questionnaire/Section/Question/Soumission/Reponse.
 // ============================================================
 
 export interface ComparaisonModele {
@@ -29,8 +20,6 @@ export interface ComparaisonModele {
 export interface VueResultats {
   seminaireTitre: string;
   seuilAnonymat: number;
-  inscrits: number;
-  repondants: number;
   questionnaireId: string | null;
   visible: boolean;
   totalSoumissions: number;
@@ -125,11 +114,7 @@ export async function obtenirResultatsSeminaire(
   const seminaire = await verifierAccesSeminaire(cabinetId, seminaireId, contexte);
   if (!seminaire) return null;
 
-  const inscriptions = await listerInscriptionsSeminaire(cabinetId, seminaireId, 'CONFIRMEE');
-  const inscrits = inscriptions?.length ?? 0;
-  const repondants = inscriptions?.filter((i) => i.aRepondu).length ?? 0;
-
-  const base = { seminaireTitre: seminaire.titre, seuilAnonymat: seminaire.seuilAnonymat, inscrits, repondants };
+  const base = { seminaireTitre: seminaire.titre, seuilAnonymat: seminaire.seuilAnonymat };
 
   const questionnaire = await obtenirQuestionnaireActifDuSeminaire(cabinetId, seminaireId);
   if (!questionnaire) {
