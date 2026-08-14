@@ -86,6 +86,16 @@ export interface JetonsAccent {
   accentContraste: string; // texte sur fond accent (boutons) — blanc ou gris-950
   accentAppui: string; // état pressé/survol, assombri ~12%
   accentTexte: string; // accent utilisé COMME couleur de texte — jamais l'accent brut
+  // Palette secondaire/tertiaire : deux teintes analogues (±40° de teinte
+  // autour de l'accent, même saturation/luminosité), pas des couleurs
+  // arbitraires — garanti d'aller « avec » la couleur du cabinet plutôt que
+  // de jurer avec. Réservées aux touches ponctuelles (barres de résultats,
+  // badges de statut, liserés) : --couleur-accent reste la seule couleur
+  // d'action (boutons), jamais concurrencée par ces deux-là.
+  secondaire: string;
+  secondaireTexte: string;
+  tertiaire: string;
+  tertiaireTexte: string;
 }
 
 /**
@@ -97,6 +107,27 @@ export interface JetonsAccent {
  * 4,5:1 contre --gris-000 — vérifié par test, pas supposé
  * (tests/unit/couleur-accent.test.ts).
  */
+/** Assombrit `hex` par pas, teinte/saturation conservées, jusqu'à 4,5:1 contre gris-000 — même méthode pour l'accent et ses deux teintes analogues. */
+function versTexteContraste(hex: string): string {
+  const hsl = rvbVersHsl(hexVersRvb(hex));
+  let l = hsl.l;
+  let texte = hex;
+  let iterations = 0;
+  while (ratioContraste(texte, GRIS_000) < CONTRASTE_MINIMUM_TEXTE && iterations < 40) {
+    l = Math.max(0, l - 0.025);
+    texte = rvbVersHex(hslVersRvb({ ...hsl, l }));
+    iterations += 1;
+  }
+  return texte;
+}
+
+/** Fait tourner la teinte de `hex` de `degres` (peut être négatif), saturation/luminosité inchangées. */
+function teinteDecalee(hex: string, degres: number): string {
+  const hsl = rvbVersHsl(hexVersRvb(hex));
+  const h = ((hsl.h + degres / 360) % 1 + 1) % 1;
+  return rvbVersHex(hslVersRvb({ ...hsl, h }));
+}
+
 export function deriverJetonsAccent(accentBrut?: string | null): JetonsAccent {
   const accent = accentBrut && /^#[0-9a-fA-F]{3,6}$/.test(accentBrut) ? accentBrut : ACCENT_PAR_DEFAUT;
 
@@ -105,16 +136,24 @@ export function deriverJetonsAccent(accentBrut?: string | null): JetonsAccent {
   const hsl = rvbVersHsl(hexVersRvb(accent));
   const accentAppui = rvbVersHex(hslVersRvb({ ...hsl, l: Math.max(0, hsl.l - 0.12) }));
 
-  let l = hsl.l;
-  let accentTexte = accent;
-  let iterations = 0;
-  while (ratioContraste(accentTexte, GRIS_000) < CONTRASTE_MINIMUM_TEXTE && iterations < 40) {
-    l = Math.max(0, l - 0.025);
-    accentTexte = rvbVersHex(hslVersRvb({ ...hsl, l }));
-    iterations += 1;
-  }
+  const accentTexte = versTexteContraste(accent);
 
-  return { accent, accentContraste, accentAppui, accentTexte };
+  // Analogues (±40°) plutôt que complémentaires (180°) : des teintes voisines
+  // se marient toujours entre elles, contrairement à deux couleurs opposées
+  // qui peuvent jurer selon la teinte de départ.
+  const secondaire = teinteDecalee(accent, 40);
+  const tertiaire = teinteDecalee(accent, -40);
+
+  return {
+    accent,
+    accentContraste,
+    accentAppui,
+    accentTexte,
+    secondaire,
+    secondaireTexte: versTexteContraste(secondaire),
+    tertiaire,
+    tertiaireTexte: versTexteContraste(tertiaire),
+  };
 }
 
 /**
@@ -129,5 +168,9 @@ export function stylesJetonsAccent(jetons: JetonsAccent): Record<string, string>
     '--couleur-accent-contraste': jetons.accentContraste,
     '--couleur-accent-appui': jetons.accentAppui,
     '--couleur-accent-texte': jetons.accentTexte,
+    '--couleur-secondaire': jetons.secondaire,
+    '--couleur-secondaire-texte': jetons.secondaireTexte,
+    '--couleur-tertiaire': jetons.tertiaire,
+    '--couleur-tertiaire-texte': jetons.tertiaireTexte,
   };
 }

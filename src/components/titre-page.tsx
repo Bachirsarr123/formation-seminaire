@@ -24,9 +24,9 @@ export function TitrePage({ surtitre, titre, children }: Props) {
         {titre}
       </h1>
       <div className="flex items-center gap-2" aria-hidden="true">
-        <span className="h-1.5 w-10 rounded-[var(--rayon-plein)] bg-[color:var(--couleur-accent-appui)]" />
+        <span className="h-1.5 w-8 rounded-[var(--rayon-plein)] bg-[color:var(--couleur-tertiaire)]" />
         <span className="h-1.5 w-16 rounded-[var(--rayon-plein)] bg-[color:var(--couleur-accent)]" />
-        <span className="h-1.5 w-10 rounded-[var(--rayon-plein)] bg-[color:var(--couleur-accent-appui)]" />
+        <span className="h-1.5 w-8 rounded-[var(--rayon-plein)] bg-[color:var(--couleur-secondaire)]" />
       </div>
       {children}
     </header>

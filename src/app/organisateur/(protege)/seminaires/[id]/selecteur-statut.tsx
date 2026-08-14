@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { StatutSeminaire } from '@prisma/client';
 import { LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
+import { StatutBadgeSeminaire } from '@/components/statut-badge-seminaire';
 import { changerStatutSeminaireAction, type EtatChangementStatut } from './actions';
 
 const ETAT_INITIAL: EtatChangementStatut = {};
@@ -13,6 +14,7 @@ export function SelecteurStatut({ seminaireId, statutActuel }: { seminaireId: st
 
   return (
     <form action={envoyer} className="flex flex-wrap items-end gap-3">
+      <StatutBadgeSeminaire statut={statutActuel} />
       <div className="flex flex-col gap-1">
         <label htmlFor="statut" className="text-[length:var(--taille-sm)] text-[color:var(--gris-700)]">
           Statut

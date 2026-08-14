@@ -6,7 +6,8 @@ import { obtenirQuestionnaireActifDuSeminaire } from '@/lib/organisateur/questio
 import { obtenirRecueil } from '@/lib/organisateur/recueil';
 import { obtenirResultatsSeminaire } from '@/lib/organisateur/resultats';
 import { obtenirOuCreerLienEvaluation } from '@/lib/organisateur/lien-evaluation';
-import { LIBELLE_MODALITE, LIBELLE_STATUT_QUESTIONNAIRE, LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
+import { LIBELLE_MODALITE, LIBELLE_STATUT_QUESTIONNAIRE } from '@/lib/libelles';
+import { StatutBadgeSeminaire } from '@/components/statut-badge-seminaire';
 import { formaterDateLongue, formaterHeure } from '@/lib/dates';
 import {
   construireLienFormateur,
@@ -133,7 +134,9 @@ export default async function PageFicheSeminaire({ params }: Props) {
       {!estFormateur ? (
         <SelecteurStatut seminaireId={seminaire.id} statutActuel={seminaire.statut} />
       ) : (
-        <p className="text-[color:var(--gris-700)]">Statut : {LIBELLE_STATUT_SEMINAIRE[seminaire.statut]}</p>
+        <p className="flex items-center gap-2 text-[color:var(--gris-700)]">
+          Statut : <StatutBadgeSeminaire statut={seminaire.statut} />
+        </p>
       )}
 
       {seminaire.modules.length > 0 ? (

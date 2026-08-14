@@ -4,6 +4,7 @@ import { listerSeminaires, type FiltresSeminaires } from '@/lib/organisateur/sem
 import { prisma } from '@/lib/prisma';
 import { formaterDateLongue } from '@/lib/dates';
 import { LIBELLE_STATUT_SEMINAIRE } from '@/lib/libelles';
+import { StatutBadgeSeminaire } from '@/components/statut-badge-seminaire';
 
 interface Props {
   searchParams: Promise<{ statut?: string; periode?: string; formateur?: string; q?: string; page?: string }>;
@@ -143,7 +144,9 @@ export default async function PageSeminaires({ searchParams }: Props) {
                   {s.dateDebut.toDateString() !== s.dateFin.toDateString() ? ` – ${formaterDateLongue(s.dateFin)}` : ''}
                 </td>
                 <td className="p-2">{s.lieu ?? '—'}</td>
-                <td className="p-2">{LIBELLE_STATUT_SEMINAIRE[s.statut]}</td>
+                <td className="p-2">
+                  <StatutBadgeSeminaire statut={s.statut} />
+                </td>
                 <td className="p-2 chiffre">
                   {s.inscrits}
                   {s.capaciteMax !== null ? ` / ${s.capaciteMax}` : ''}

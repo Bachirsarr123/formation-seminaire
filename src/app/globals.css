@@ -28,6 +28,15 @@
      (échoue l'AA pour un vert vif ou un orange — cf. lib/design/couleur-accent.ts) */
   --couleur-accent-texte: #1f4066;
 
+  /* Palette secondaire/tertiaire — deux teintes analogues (±40°) dérivées de
+     l'accent (lib/design/couleur-accent.ts), pour des touches ponctuelles
+     (barres de résultats, badges) plus variées que le seul accent répété
+     partout. Jamais des couleurs d'action : voir --couleur-accent pour ça. */
+  --couleur-secondaire: #2d84a8;
+  --couleur-secondaire-texte: #185267;
+  --couleur-tertiaire: #472da8;
+  --couleur-tertiaire-texte: #2e1c6b;
+
   /* Typographie */
   --police-texte: var(--font-plex-sans), system-ui, sans-serif;
   --police-chiffres: var(--font-plex-mono), ui-monospace, monospace;
